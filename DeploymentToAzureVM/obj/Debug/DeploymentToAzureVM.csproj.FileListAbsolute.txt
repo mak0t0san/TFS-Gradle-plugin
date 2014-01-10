@@ -11,3 +11,4 @@ D:\Microsoft\Samples\TFS\GradleBuild\GradleBuildTemplate\DeploymentToAzureVM\bin
 D:\Microsoft\Samples\TFS\GradleBuild\GradleBuildTemplate\DeploymentToAzureVM\bin\Debug\Microsoft.WITDataStore.dll
 D:\Microsoft\Samples\TFS\GradleBuild\GradleBuildTemplate\DeploymentToAzureVM\obj\Debug\DeploymentToAzureVM.dll
 D:\Microsoft\Samples\TFS\GradleBuild\GradleBuildTemplate\DeploymentToAzureVM\obj\Debug\DeploymentToAzureVM.pdb
+D:\Microsoft\Samples\TFS\GradleBuild\GradleBuildTemplate\DeploymentToAzureVM\obj\Debug\DeploymentToAzureVM.csprojResolveAssemblyReference.cache
