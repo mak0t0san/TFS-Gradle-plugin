@@ -47,7 +47,7 @@ namespace DeploymentToAzureVM
 
         int buildOutputDirParentPathLen = 0;
 
-        string deploymentDir;
+        string deploymentPath;
 
         private CodeActivityContext context;
 
@@ -88,7 +88,7 @@ namespace DeploymentToAzureVM
                 this.winRSCmdsMasked = new List<string>();
                 this.winRSCmdMasked = "winrs";
                 this.buildOutputDirParentPathLen = 0;
-                this.deploymentDir = "";
+                this.deploymentPath = "";
 
                 if (reader.NodeType == XmlNodeType.Element && String.Compare(reader.Name, VM, true) == 0)
                 {
@@ -221,18 +221,23 @@ namespace DeploymentToAzureVM
                 this.winRSCmd += " -p:" + this.vmConfig[PASSWORD];
                 this.winRSCmdMasked += " -p:****";				// To avoid logging the actual password
 
-                this.deploymentDir = this.vmConfig[DEPLOYMENT_PATH];
+                this.deploymentPath = this.vmConfig[DEPLOYMENT_PATH];
                 string buildOutputDir = context.GetValue(this.BuildOutputPath);
                 this.buildOutputDirParentPathLen = (buildOutputDir.Substring(0, buildOutputDir.LastIndexOf("\\"))).Length + 1;
 
                 string buildOutputDirName = buildOutputDir.Substring(buildOutputDir.LastIndexOf("\\") + 1);
-                
-                // Remove the directory recursively, if it exists first
-                winRSCmds.Add(this.winRSCmd + " \"if exist ^\"" + buildOutputDirName + "^\" rmdir /S /Q ^\"" + buildOutputDir + "^\"\"");
-                winRSCmdsMasked.Add(this.winRSCmdMasked + " \"if exist ^\"" + buildOutputDirName + "^\" rmdir /S /Q ^\"" + buildOutputDir + "^\"\"");
+                string deploymentDir = this.deploymentPath + "\\" + buildOutputDirName;
 
-                winRSCmds.Add(this.winRSCmd + " \"mkdir ^\"" + buildOutputDirName + "^\"\"");
-                winRSCmdsMasked.Add(this.winRSCmdMasked + " \"mkdir ^\"" + buildOutputDirName + "^\"\"");
+                // Remove the directory recursively, if it exists first
+                winRSCmds.Add(this.winRSCmd 
+                    + " \"if exist ^\"" + deploymentDir + "^\""
+                    + " rmdir /S /Q ^\"" + deploymentDir + "^\"\"");
+                winRSCmdsMasked.Add(this.winRSCmdMasked 
+                    + " \"if exist ^\"" + deploymentDir + "^\""
+                    + " rmdir /S /Q ^\"" + deploymentDir + "^\"\"");
+
+                winRSCmds.Add(this.winRSCmd + " \"mkdir ^\"" + deploymentDir + "^\"\"");
+                winRSCmdsMasked.Add(this.winRSCmdMasked + " \"mkdir ^\"" + deploymentDir + "^\"\"");
 
                 browseDirCopyContents(buildOutputDir);
             }
@@ -256,7 +261,7 @@ namespace DeploymentToAzureVM
                     // We only need the directory name from the build output directory onwards.
                     // So trim the initial part of the full path.
                     // Then prefix the path with the deployment directory path.
-                    dirName = this.deploymentDir + d.Remove(0, this.buildOutputDirParentPathLen);
+                    dirName = this.deploymentPath + d.Remove(0, this.buildOutputDirParentPathLen);
                     winRSCmds.Add(this.winRSCmd + " \"mkdir ^\"" + dirName + "^\"\"");
                     winRSCmdsMasked.Add(this.winRSCmdMasked + " \"mkdir ^\"" + dirName + "^\"\"");
 
@@ -266,17 +271,27 @@ namespace DeploymentToAzureVM
                         BinaryReader readBinary = new BinaryReader(readStream);
                         int pos = 0;
                         int len = (int)readBinary.BaseStream.Length;
-                        byte msg;
+                        int bytesToRead = 1024;
+                        byte[] bytesRead;
+                        string strRead;
 
-                        fileName = this.deploymentDir + f.Remove(0, this.buildOutputDirParentPathLen);
+                        fileName = this.deploymentPath + f.Remove(0, this.buildOutputDirParentPathLen);
 
                         // Extract the contents of the local file and append to the remote file
                         while (pos < len)
                         {
-                            msg = readBinary.ReadByte();
-                            winRSCmds.Add(this.winRSCmd + " \"echo " + msg + " >> ^\"" + fileName + "^\"\"");
-                            winRSCmdsMasked.Add(this.winRSCmdMasked + " \"echo " + msg + " >> ^\"" + fileName + "^\"\"");
-                            pos += sizeof(byte);
+                            if (bytesToRead > (len - pos))
+                            {
+                                bytesToRead = (len - pos);
+                            }
+
+                            bytesRead = readBinary.ReadBytes(bytesToRead);
+                            strRead = System.Text.Encoding.Default.GetString(bytesRead);
+
+                            winRSCmds.Add(this.winRSCmd + " \"echo ^\"" + strRead + "^\" >> ^\"" + fileName + "^\"\"");
+                            winRSCmdsMasked.Add(this.winRSCmdMasked + " \"echo ^\"" + strRead + "^\" >> ^\"" + fileName + "^\"\"");
+
+                            pos += bytesToRead;
                         }
                     }
 
