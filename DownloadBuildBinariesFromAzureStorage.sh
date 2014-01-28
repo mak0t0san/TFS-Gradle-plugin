@@ -17,14 +17,14 @@ destination=$4
 # Change the IFS to newline character (\n) so that each output line is store into the array blobList.
 IFS=$'\n'
 
-# List all the blobs in the container and get the name of the blobs into a list
-blobList=(`azure storage blob list --account-name $storageAccountName --account-key $storageAccountKey --container $containerName | awk -F'(Block|Page)Blob' '{print $1}' | awk -F'    ' '{print $2}' | tail -n +5 | head -n -1 | sed 's/ *$//g'`)
+# List all the blobs in the container and get the name of the blobs into an array
+blobNames=(`azure storage blob list --account-name $storageAccountName --account-key $storageAccountKey --container $containerName --json | grep '"name":' | awk -F': ' '{print $2}' | awk -F',' '{print $1}' | awk -F'"' '{print $2}'`)
 
 # Restore the original TFS
 IFS=$originalIFS
 
 # Download each blob into the destination path. This will replace any files / folders with the same name already present in the destination path
-for blob in "${blobList[@]}"
+for blob in "${blobNames[@]}"
 do
     azure storage blob download --account-name $storageAccountName --account-key $storageAccountKey --container $containerName --blob "$blob" --destination "$destination" --quiet
 done
