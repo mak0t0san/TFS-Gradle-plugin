@@ -19,7 +19,7 @@ destination=$4
 IFS=$'\n'
 
 # List all the blobs in the container and get the name of the blobs into an array
-blobNames=(`azure storage blob list --account-name $storageAccountName --account-key $storageAccountKey --container $containerName --json | grep '"name":' | awk -F': ' '{print $2}' | awk -F',' '{print $1}' | awk -F'"' '{print $2}'`)
+blobNames=(`azure storage blob list --account-name $storageAccountName --account-key $storageAccountKey --container $containerName --json | grep '"name":' | awk -F'"' '{print $4}'`)
 
 # Restore the original TFS
 IFS=$originalIFS
