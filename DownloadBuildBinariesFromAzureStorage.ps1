@@ -15,6 +15,7 @@
 		-EmailFrom <user@domain.com> -EmailTo "<user2@domain2.com, user3@domain.com>" `
 		-SMTPUserName <username> -SMTPPassword <password>
 #>
+
 param (
 	# The Azure Storage Account Name where the Build Binaries exist
     [Parameter(Mandatory = $true)]
@@ -59,27 +60,80 @@ param (
 
 Try
 {
+	# Reset the error variable
+	$error.clear()
+	
 	# Set the properties for emailing the status of download
-	$Subject = "Download Build Binaries - Status" 
-	$Body = "" 
+	$emailSubject = "Download Build Binaries - Status" 
+	$emailBody = "" 
 	$SMTPClient = New-Object Net.Mail.SmtpClient($SMTPServer, $SMTPPort) 
 	$SMTPClient.EnableSsl = $true 
 	$SMTPClient.Credentials = New-Object System.Net.NetworkCredential($SMTPUserName, $SMTPPassword); 
 
+    function logAzureError ($errorObj)
+    {
+	    $errorMsg = $errorObj.InvocationInfo.InvocationName.ToString() + "  :  " + $errorObj.ToString() + "`n" `
+					    + $errorObj.InvocationInfo.PositionMessage.ToString() + "`n" `
+					    + "CategoryInfo  :  " + $errorObj.CategoryInfo.ToString() + "`n" `
+					    + "FullyQualifiedErrorId  :  " + $errorObj.FullyQualifiedErrorId.ToString()
+	
+	    return $errorMsg
+    }
+
+
 	# Create the Azure Storage Context using the Account Name and Account Key
 	$context = New-AzureStorageContext -StorageAccountName $StorageAccountName -StorageAccountKey $StorageAccountKey
-
-	# List the Azure Blobs in a given container and download each of the listed blobs to the destination folder
-	Get-AzureStorageBlob -container $ContainerName -context $context | ForEach-Object {Get-AzureStorageBlobContent -container $ContainerName -context $context -blob $_.Name -Force -Destination $Destination}
+	if ($error.Count -gt 0)
+	{
+		$emailSubject = "$emailSubject - ERROR!" 
+		$emailBody = logAzureError $error[0]
+	}
+	else
+	{
+		# List the Azure Blobs in a given container
+		$blobsList = Get-AzureStorageBlob -container $ContainerName -context $context 
+		if ($error.Count -gt 0)
+		{
+			$emailSubject = "$emailSubject - ERROR!" 
+			$emailBody = logAzureError $error[0]
+		}
+		else 
+		{
+			# Download each of the listed blobs to the destination folder
+			foreach($blob in $blobsList)
+			{
+				$downloadResult = Get-AzureStorageBlobContent -container $ContainerName -context $context -blob $blob.Name -Force -Destination $Destination
+				if ($error.Count -gt 0)	
+				{
+					# NEED TO APPEND MULTIPLE ERRORS
+                    $emailBody = logAzureError $error[0]
+				}
+                else
+                {
+                    # NEED TO FORMAT SUCCESS MESSAGE
+                    $emailBody = $emailBody + "`n`n" + $downloadResult
+                }
+			}
+            if ($error.Count -gt 0)	
+            {
+                $emailSubject = "$emailSubject - ERROR!" 
+            }
+            else
+            {
+                $emailSubject = "$emailSubject - SUCCESS" 
+            }
+		}
+	}
 }
 Catch
 {
     $ErrorMessage = $_.Exception.Message
     $FailedItem = $_.Exception.ItemName
-	$Body = "Error occurred while downloading Build Binaries!\nExcption Message: $ErrorMessage\nFailed Item: $FailedItem"
+	$emailSubject = "$emailSubject - ERROR!" 
+	$emailBody = "Error occurred while downloading Build Binaries!`nException Message: $ErrorMessage`nFailed Item: $FailedItem"
 }
 Finally
 {
 	# Send the email
-	$SMTPClient.Send($EmailFrom, $EmailTo, $Subject, $Body)
+	$SMTPClient.Send($EmailFrom, $EmailTo, $emailSubject, $emailBody)
 }
