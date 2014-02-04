@@ -144,7 +144,6 @@
       <Sequence DisplayName="Initialize Variables" sap2010:WorkflowViewState.IdRef="Sequence_2">
         <mtbac:GetEnvironmentVariable x:TypeArguments="x:String" DisplayName="Get the Environment Variable %GRADLE_HOME%" sap2010:WorkflowViewState.IdRef="GetEnvironmentVariable`1_1" Name="GRADLE_HOME" Result="[gradleHome]" />
         <mtbac:GetEnvironmentVariable x:TypeArguments="x:String" DisplayName="Get the Environment Variable %AZCOPY%" sap2010:WorkflowViewState.IdRef="GetEnvironmentVariable`1_2" Name="AZCOPY" Result="[azCopyPath]" />
-        <mtbwa:WriteBuildMessage sap2010:WorkflowViewState.IdRef="WriteBuildMessage_13" Importance="[Microsoft.TeamFoundation.Build.Client.BuildMessageImportance.High]" Message="[&quot;azcopy: &quot; + azCopyPath + &quot; &amp; gradleHome: &quot; + gradleHome + &quot; &amp;&amp;&amp;&amp;&amp; $(GRADLE_HOME) &amp;&amp;&amp;&amp;&amp;&amp; $(AZCOPY)&quot;]" mva:VisualBasic.Settings="Assembly references and imported namespaces serialized as XML namespaces" />
         <Assign DisplayName="Get the Gradle Build Script Relative Path" sap2010:WorkflowViewState.IdRef="Assign_10">
           <Assign.To>
             <OutArgument x:TypeArguments="x:String">[gradleBuildScriptRelativePath]</OutArgument>
@@ -405,7 +404,7 @@
         </TryCatch.Catches>
       </TryCatch>
     </mtbwa:AgentScope>
-    <sads:DebugSymbol.Symbol>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</sads:DebugSymbol.Symbol>
+    <sads:DebugSymbol.Symbol>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</sads:DebugSymbol.Symbol>
   </Sequence>
   <sap2010:WorkflowViewState.ViewStateManager>
     <sap2010:ViewStateManager>
@@ -413,7 +412,6 @@
       <sap2010:ViewStateData Id="InitializeEnvironment_3" sap:VirtualizedContainerService.HintSize="1018,22" />
       <sap2010:ViewStateData Id="GetEnvironmentVariable`1_1" sap:VirtualizedContainerService.HintSize="264,22" />
       <sap2010:ViewStateData Id="GetEnvironmentVariable`1_2" sap:VirtualizedContainerService.HintSize="264,22" />
-      <sap2010:ViewStateData Id="WriteBuildMessage_13" sap:VirtualizedContainerService.HintSize="264,22" />
       <sap2010:ViewStateData Id="Assign_10" sap:VirtualizedContainerService.HintSize="264,60" />
       <sap2010:ViewStateData Id="Assign_1" sap:VirtualizedContainerService.HintSize="264,60" />
       <sap2010:ViewStateData Id="GetLocalPath_1" sap:VirtualizedContainerService.HintSize="242,22" />
@@ -426,7 +424,7 @@
         </sap:WorkflowViewStateService.ViewState>
       </sap2010:ViewStateData>
       <sap2010:ViewStateData Id="Assign_22" sap:VirtualizedContainerService.HintSize="264,60" />
-      <sap2010:ViewStateData Id="Sequence_2" sap:VirtualizedContainerService.HintSize="1018,856">
+      <sap2010:ViewStateData Id="Sequence_2" sap:VirtualizedContainerService.HintSize="1018,794">
         <sap:WorkflowViewStateService.ViewState>
           <scg:Dictionary x:TypeArguments="x:String, x:Object">
             <x:Boolean x:Key="IsExpanded">True</x:Boolean>
@@ -593,15 +591,15 @@
         </sap:WorkflowViewStateService.ViewState>
       </sap2010:ViewStateData>
       <sap2010:ViewStateData Id="TryCatch_6" sap:VirtualizedContainerService.HintSize="1018,1303" />
-      <sap2010:ViewStateData Id="AgentScope_1" sap:VirtualizedContainerService.HintSize="1040,7534" />
-      <sap2010:ViewStateData Id="Sequence_6" sap:VirtualizedContainerService.HintSize="1062,7720">
+      <sap2010:ViewStateData Id="AgentScope_1" sap:VirtualizedContainerService.HintSize="1040,7472" />
+      <sap2010:ViewStateData Id="Sequence_6" sap:VirtualizedContainerService.HintSize="1062,7658">
         <sap:WorkflowViewStateService.ViewState>
           <scg:Dictionary x:TypeArguments="x:String, x:Object">
             <x:Boolean x:Key="IsExpanded">True</x:Boolean>
           </scg:Dictionary>
         </sap:WorkflowViewStateService.ViewState>
       </sap2010:ViewStateData>
-      <sap2010:ViewStateData Id="TfsBuild.Process_1" sap:VirtualizedContainerService.HintSize="1102,7800">
+      <sap2010:ViewStateData Id="TfsBuild.Process_1" sap:VirtualizedContainerService.HintSize="1102,7738">
         <sap:WorkflowViewStateService.ViewState>
           <scg:Dictionary x:TypeArguments="x:String, x:Object">
             <x:Boolean x:Key="ShouldExpandAll">True</x:Boolean>
