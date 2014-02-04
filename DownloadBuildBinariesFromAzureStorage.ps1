@@ -58,6 +58,7 @@ param (
 	$SMTPPassword
 )
 
+
 Try
 {
 	# Reset the error variable
@@ -103,15 +104,27 @@ Try
 			foreach($blob in $blobsList)
 			{
 				$downloadResult = Get-AzureStorageBlobContent -container $ContainerName -context $context -blob $blob.Name -Force -Destination $Destination
+                $downloadError = ""
 				if ($error.Count -gt 0)	
 				{
-					# NEED TO APPEND MULTIPLE ERRORS
-                    $emailBody = logAzureError $error[0]
+                    $downloadError = logAzureError $error[0]
+                    $emailBody = $emailBody + "`n" `
+                                    + "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~`n" `
+                                    + $downloadError + "`n" `
+                                    + "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~`n" 
 				}
                 else
                 {
-                    # NEED TO FORMAT SUCCESS MESSAGE
-                    $emailBody = $emailBody + "`n`n" + $downloadResult
+                    $emailBody = $emailBody + "`n" `
+                                    + "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~`n" `
+                                    + "AbsoluteUri  : " + $downloadResult.ICloudBlob.Uri.AbsoluteUri + "`n" `
+                                    + "Blob Name    : " + $downloadResult.Name + "`n" `
+                                    + "Blob Type    : " + $downloadResult.BlobType + "`n" `
+                                    + "Length       : " + $downloadResult.Length + "`n" `
+                                    + "ContentType  : " + $downloadResult.ContentType + "`n" `
+                                    + "LastModified : " + $downloadResult.LastModified.UtcDateTime + "`n" `
+                                    + "SnapshotTime : " + $downloadResult.SnapshotTime + "`n" `
+                                    + "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~`n"
                 }
 			}
             if ($error.Count -gt 0)	
@@ -130,7 +143,7 @@ Catch
     $ErrorMessage = $_.Exception.Message
     $FailedItem = $_.Exception.ItemName
 	$emailSubject = "$emailSubject - ERROR!" 
-	$emailBody = "Error occurred while downloading Build Binaries!`nException Message: $ErrorMessage`nFailed Item: $FailedItem"
+	$emailBody = "Error occurred while Downloading Build Binaries!`nException Message: $ErrorMessage`nFailed Item: $FailedItem"
 }
 Finally
 {
