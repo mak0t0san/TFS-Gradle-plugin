@@ -70,6 +70,7 @@ Try
 	$SMTPClient = New-Object Net.Mail.SmtpClient($SMTPServer, $SMTPPort) 
 	$SMTPClient.EnableSsl = $true 
 	$SMTPClient.Credentials = New-Object System.Net.NetworkCredential($SMTPUserName, $SMTPPassword); 
+    $errorFlag = $false
 
     function logAzureError ($errorObj)
     {
@@ -86,7 +87,7 @@ Try
 	$context = New-AzureStorageContext -StorageAccountName $StorageAccountName -StorageAccountKey $StorageAccountKey
 	if ($error.Count -gt 0)
 	{
-		$emailSubject = "$emailSubject - ERROR!" 
+		$errorFlag = $true
 		$emailBody = logAzureError $error[0]
 	}
 	else
@@ -95,7 +96,7 @@ Try
 		$blobsList = Get-AzureStorageBlob -container $ContainerName -context $context 
 		if ($error.Count -gt 0)
 		{
-			$emailSubject = "$emailSubject - ERROR!" 
+			$errorFlag = $true
 			$emailBody = logAzureError $error[0]
 		}
 		else 
@@ -107,16 +108,22 @@ Try
                 $downloadError = ""
 				if ($error.Count -gt 0)	
 				{
+                    $errorFlag = $true
+
                     $downloadError = logAzureError $error[0]
+
                     $emailBody = $emailBody + "`n" `
-                                    + "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~`n" `
+                                    + "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~FAILURE START~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~`n" `
                                     + $downloadError + "`n" `
-                                    + "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~`n" 
+                                    + "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~FAILURE END~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~`n" 
+                    
+                    # Reset the error variable, else for all subsequent downloads, the previous error will be considered
+	                $error.clear()
 				}
                 else
                 {
                     $emailBody = $emailBody + "`n" `
-                                    + "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~`n" `
+                                    + "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~SUCCESS START~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~`n" `
                                     + "AbsoluteUri  : " + $downloadResult.ICloudBlob.Uri.AbsoluteUri + "`n" `
                                     + "Blob Name    : " + $downloadResult.Name + "`n" `
                                     + "Blob Type    : " + $downloadResult.BlobType + "`n" `
@@ -124,17 +131,9 @@ Try
                                     + "ContentType  : " + $downloadResult.ContentType + "`n" `
                                     + "LastModified : " + $downloadResult.LastModified.UtcDateTime + "`n" `
                                     + "SnapshotTime : " + $downloadResult.SnapshotTime + "`n" `
-                                    + "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~`n"
+                                    + "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~SUCCESS END~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~`n"
                 }
 			}
-            if ($error.Count -gt 0)	
-            {
-                $emailSubject = "$emailSubject - ERROR!" 
-            }
-            else
-            {
-                $emailSubject = "$emailSubject - SUCCESS" 
-            }
 		}
 	}
 }
@@ -142,11 +141,20 @@ Catch
 {
     $ErrorMessage = $_.Exception.Message
     $FailedItem = $_.Exception.ItemName
-	$emailSubject = "$emailSubject - ERROR!" 
+	$errorFlag = $true
 	$emailBody = "Error occurred while Downloading Build Binaries!`nException Message: $ErrorMessage`nFailed Item: $FailedItem"
 }
 Finally
 {
-	# Send the email
+	if ($errorFlag -eq $true)
+    {
+        $emailSubject = "$emailSubject - ERROR!" 
+    }
+    else
+    {
+        $emailSubject = "$emailSubject - SUCCESS" 
+    }
+
+    # Send the email
 	$SMTPClient.Send($EmailFrom, $EmailTo, $emailSubject, $emailBody)
 }
