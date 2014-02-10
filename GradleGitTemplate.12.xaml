@@ -34,13 +34,13 @@
     <x:Property Name="SupportedReasons" Type="mtbc1:BuildReason" />
     <x:Property Name="BuildProcessVersion" Type="x:String" />
     <x:Property Name="GradleBuildScript" Type="InArgument(s:String[])" />
-    <x:Property Name="GradleBuildArguments" Type="InArgument(x:String)" />
     <x:Property Name="GradleCommand" Type="InArgument(x:String)" />
-    <x:Property Name="GradleWrapperScript" Type="InArgument(s:String[])" />
-    <x:Property Name="GradleInitScript" Type="InArgument(s:String[])" />
     <x:Property Name="GradleSettingsFile" Type="InArgument(s:String[])" />
     <x:Property Name="AzureStorageAccountKey" Type="InArgument(x:String)" />
     <x:Property Name="BLOBContainerURL" Type="InArgument(x:String)" />
+    <x:Property Name="GradleWrapperBatchFile" Type="InArgument(s:String[])" />
+    <x:Property Name="GradleTasks" Type="InArgument(s:String[])" />
+    <x:Property Name="GradleInitScripts" Type="InArgument(s:String[])" />
   </x:Members>
   <this:Process.CheckoutOverride>
     <InArgument x:TypeArguments="x:String" />
@@ -51,8 +51,8 @@
       <mtbw:ProcessParameterMetadata BrowsableWhen="Always" Category="#100 Git" Description="Specify the id of a checkout to override the default branch and commit." DisplayName="2. Checkout override" ParameterName="CheckoutOverride" />
       <mtbw:ProcessParameterMetadata Category="#200 Gradle Build" Description="Specify the gradle command to be used for this build" DisplayName="1. Gradle Command" Editor="@DropDownList=gradle,gradlew" ParameterName="GradleCommand" Required="True" />
       <mtbw:ProcessParameterMetadata Category="#200 Gradle Build" Description="Relative path to the Gradle Build Script you want to build. This will be executed with the -b option." DisplayName="2. Gradle Build Script" Editor="Microsoft.TeamFoundation.Build.Controls.BuildProjectListRelativePathEditor, Microsoft.TeamFoundation.Build.Controls" ParameterName="GradleBuildScript" Required="True" />
-      <mtbw:ProcessParameterMetadata Category="#200 Gradle Build" Description="Specify the Gradle Build Options and Tasks. If there is more than one task, provide them separated by space (i.e., task1 task2 task3)." DisplayName="3. Gradle Build Options &amp; Tasks" ParameterName="GradleBuildArguments" Required="True" />
-      <mtbw:ProcessParameterMetadata Category="#200 Gradle Build" Description="Applicable only if Gradle comand is &quot;gradlew&quot;. Relative path to the Gradle Wrapper Script." DisplayName="4. Gradle Wrapper Script" Editor="Microsoft.TeamFoundation.Build.Controls.BuildProjectListRelativePathEditor, Microsoft.TeamFoundation.Build.Controls" ParameterName="GradleWrapperScript" />
+      <mtbw:ProcessParameterMetadata Category="#200 Gradle Build" Description="Specify the Gradle Task(s) to be executed" DisplayName="3. Gradle Task(s)" ParameterName="GradleTasks" Required="True" />
+      <mtbw:ProcessParameterMetadata Category="#200 Gradle Build" Description="Applicable only if Gradle comand is &quot;gradlew&quot;. Relative path to the Gradle Wrapper Batch file (gradlew.bat)" DisplayName="4. Gradle Wrapper Batch File" Editor="Microsoft.TeamFoundation.Build.Controls.BuildProjectListRelativePathEditor, Microsoft.TeamFoundation.Build.Controls" ParameterName="GradleWrapperBatchFile" />
       <mtbw:ProcessParameterMetadata Category="#300 Gradle Advanced" Description="Relative path to the Gradle Init Script(s). This will be executed with the -I option." DisplayName="1. Gradle Init Script" Editor="Microsoft.TeamFoundation.Build.Controls.BuildProjectListRelativePathEditor, Microsoft.TeamFoundation.Build.Controls" ParameterName="GradleInitScript" />
       <mtbw:ProcessParameterMetadata Category="#300 Gradle Advanced" Description="Relative path to the Gradle Settings file. This will be executed with the -c option." DisplayName="2. Gradle Settings File" Editor="Microsoft.TeamFoundation.Build.Controls.BuildProjectListRelativePathEditor, Microsoft.TeamFoundation.Build.Controls" ParameterName="GradleSettingsFile" />
       <mtbw:ProcessParameterMetadata Category="#400 Deploy To Azure BLOB Storage" Description="Provide the Azure BLOB Container URL" DisplayName="1. Azure BLOB Container URL" ParameterName="BLOBContainerURL" />
@@ -191,14 +191,14 @@
             <TryCatch sap2010:WorkflowViewState.IdRef="TryCatch_3">
               <TryCatch.Try>
                 <Sequence DisplayName="Validate inputs for 'gradlew' command" sap2010:WorkflowViewState.IdRef="Sequence_10">
-                  <If Condition="[GradleWrapperScript.Length &gt; 1]" DisplayName="Check if only one Gradle Wrapper Script is provided" sap2010:WorkflowViewState.IdRef="If_15">
+                  <If Condition="[GradleWrapperBatchFile.Length &gt; 1]" DisplayName="Check if only one Gradle Wrapper Batch file is provided" sap2010:WorkflowViewState.IdRef="If_15">
                     <If.Then>
-                      <mtbwa:WriteBuildWarning DisplayName="More than 1 Gradle Wrapper Script" sap2010:WorkflowViewState.IdRef="WriteBuildWarning_2" Message="More than one Gradle Wrapper Script is provided. Only the first one will be considered for this build." mva:VisualBasic.Settings="Assembly references and imported namespaces serialized as XML namespaces" />
+                      <mtbwa:WriteBuildWarning DisplayName="More than 1 Gradle Wrapper Batch File" sap2010:WorkflowViewState.IdRef="WriteBuildWarning_2" Message="More than one Gradle Wrapper Batch file is provided. Only the first one will be considered for this build." mva:VisualBasic.Settings="Assembly references and imported namespaces serialized as XML namespaces" />
                     </If.Then>
                   </If>
-                  <If Condition="[Not String.IsNullOrEmpty(GradleWrapperScript.GetValue(0).ToString)]" DisplayName="Is Gradle Wrapper Script Relative Path provided?" sap2010:WorkflowViewState.IdRef="If_18">
+                  <If Condition="[Not String.IsNullOrEmpty(GradleWrapperBatchFile.GetValue(0).ToString)]" DisplayName="Is Gradle Wrapper Batch file Relative Path provided?" sap2010:WorkflowViewState.IdRef="If_18">
                     <If.Then>
-                      <mtbac:GetLocalPath DisplayName="Get the Local Path of Gradle Wrapper script" sap2010:WorkflowViewState.IdRef="GetLocalPath_8" IncomingPath="[GradleWrapperScript.GetValue(0).ToString]" Result="[gradleCommandExecution]" />
+                      <mtbac:GetLocalPath DisplayName="Get the Local Path of Gradle Wrapper Batch File" sap2010:WorkflowViewState.IdRef="GetLocalPath_8" IncomingPath="[GradleWrapperBatchFile.GetValue(0).ToString]" Result="[gradleCommandExecution]" />
                     </If.Then>
                   </If>
                 </Sequence>
@@ -209,7 +209,7 @@
                     <ActivityAction.Argument>
                       <DelegateInArgument x:TypeArguments="s:NullReferenceException" Name="exception" />
                     </ActivityAction.Argument>
-                    <Throw DisplayName="Throw Exception so that build will stop" Exception="[New Exception(&quot;Gradle Wrapper Script Relative Path is not provided&quot;)]" sap2010:WorkflowViewState.IdRef="Throw_11" />
+                    <Throw DisplayName="Throw Exception so that build will stop" Exception="[New Exception(&quot;Gradle Wrapper Batch File Relative Path is not provided&quot;)]" sap2010:WorkflowViewState.IdRef="Throw_11" />
                   </ActivityAction>
                 </Catch>
               </TryCatch.Catches>
@@ -238,13 +238,13 @@
             <Sequence DisplayName="Validate for Gradle Settings file, if provided" sap2010:WorkflowViewState.IdRef="Sequence_11">
               <If Condition="[GradleSettingsFile.Length &gt; 1]" DisplayName="Check if only one Gradle Settings File is provided" sap2010:WorkflowViewState.IdRef="If_19">
                 <If.Then>
-                  <mtbwa:WriteBuildWarning DisplayName="More than 1 Gradle Wrapper Script" sap2010:WorkflowViewState.IdRef="WriteBuildWarning_3" Message="More than one Gradle Settings File is provided. Only the first one will be considered for this build." mva:VisualBasic.Settings="Assembly references and imported namespaces serialized as XML namespaces" />
+                  <mtbwa:WriteBuildWarning DisplayName="More than 1 Gradle Settings File" sap2010:WorkflowViewState.IdRef="WriteBuildWarning_3" Message="More than one Gradle Settings File is provided. Only the first one will be considered for this build." mva:VisualBasic.Settings="Assembly references and imported namespaces serialized as XML namespaces" />
                 </If.Then>
               </If>
               <If Condition="[Not String.IsNullOrEmpty(GradleSettingsFile.GetValue(0).ToString)]" DisplayName="Is Gradle Settings File provided?" sap2010:WorkflowViewState.IdRef="If_20">
                 <If.Then>
                   <Sequence DisplayName="Construct the Gradle Build Option for Gradle Settings File" sap2010:WorkflowViewState.IdRef="Sequence_12">
-                    <mtbac:GetLocalPath DisplayName="Get the Local Path of Gradle Wrapper script" sap2010:WorkflowViewState.IdRef="GetLocalPath_9" IncomingPath="[GradleSettingsFile.GetValue(0).ToString]" Result="[localPath]" />
+                    <mtbac:GetLocalPath DisplayName="Get the Local Path of Gradle Settings file" sap2010:WorkflowViewState.IdRef="GetLocalPath_9" IncomingPath="[GradleSettingsFile.GetValue(0).ToString]" Result="[localPath]" />
                     <Assign sap2010:WorkflowViewState.IdRef="Assign_13">
                       <Assign.To>
                         <OutArgument x:TypeArguments="x:String">[gradleCommandOptions]</OutArgument>
@@ -264,21 +264,22 @@
                 <ActivityAction.Argument>
                   <DelegateInArgument x:TypeArguments="s:NullReferenceException" Name="exception" />
                 </ActivityAction.Argument>
+                <mtbwa:WriteBuildMessage DisplayName="No Gradle Settings File" sap2010:WorkflowViewState.IdRef="WriteBuildMessage_15" Importance="[Microsoft.TeamFoundation.Build.Client.BuildMessageImportance.High]" Message="No Gradle Settings file for this build" mva:VisualBasic.Settings="Assembly references and imported namespaces serialized as XML namespaces" />
               </ActivityAction>
             </Catch>
           </TryCatch.Catches>
         </TryCatch>
-        <TryCatch DisplayName="Try - Gradle Init Script" sap2010:WorkflowViewState.IdRef="TryCatch_5">
+        <TryCatch DisplayName="Try - Gradle Init Script(s)" sap2010:WorkflowViewState.IdRef="TryCatch_5">
           <TryCatch.Try>
-            <If Condition="[GradleInitScript.Length &gt;= 1]" DisplayName="Check if Gradle Init Script(s) is provided" sap2010:WorkflowViewState.IdRef="If_23">
+            <If Condition="[GradleInitScripts.Length &gt;= 1]" DisplayName="Check if Gradle Init Script(s) is provided" sap2010:WorkflowViewState.IdRef="If_23">
               <If.Then>
-                <ForEach x:TypeArguments="x:String" DisplayName="ForEach&lt;String&gt;" sap2010:WorkflowViewState.IdRef="ForEach`1_2" Values="[GradleInitScript.ToArray]">
+                <ForEach x:TypeArguments="x:String" DisplayName="ForEach&lt;String&gt;" sap2010:WorkflowViewState.IdRef="ForEach`1_2" Values="[GradleInitScripts.ToArray]">
                   <ActivityAction x:TypeArguments="x:String">
                     <ActivityAction.Argument>
                       <DelegateInArgument x:TypeArguments="x:String" Name="initScript" />
                     </ActivityAction.Argument>
                     <Sequence DisplayName="Construct the Gradle Build Option for Gradle Init Script(s)" sap2010:WorkflowViewState.IdRef="Sequence_13">
-                      <mtbac:GetLocalPath DisplayName="Get the Local Path of Gradle Wrapper script" sap2010:WorkflowViewState.IdRef="GetLocalPath_11" IncomingPath="[initScript]" Result="[localPath]" />
+                      <mtbac:GetLocalPath DisplayName="Get the Local Path of Gradle Init Script" sap2010:WorkflowViewState.IdRef="GetLocalPath_11" IncomingPath="[initScript]" Result="[localPath]" />
                       <Assign sap2010:WorkflowViewState.IdRef="Assign_14">
                         <Assign.To>
                           <OutArgument x:TypeArguments="x:String">[gradleCommandOptions]</OutArgument>
@@ -299,6 +300,7 @@
                 <ActivityAction.Argument>
                   <DelegateInArgument x:TypeArguments="s:NullReferenceException" Name="exception" />
                 </ActivityAction.Argument>
+                <mtbwa:WriteBuildMessage DisplayName="No Gradle Init Scripts" sap2010:WorkflowViewState.IdRef="WriteBuildMessage_16" Importance="[Microsoft.TeamFoundation.Build.Client.BuildMessageImportance.High]" Message="No Gradle Init Scripts for this build" mva:VisualBasic.Settings="Assembly references and imported namespaces serialized as XML namespaces" />
               </ActivityAction>
             </Catch>
           </TryCatch.Catches>
@@ -309,11 +311,31 @@
       <TryCatch DisplayName="Try - Build" sap2010:WorkflowViewState.IdRef="TryCatch_1" mtbwt:BuildTrackingParticipant.Importance="Low">
         <TryCatch.Try>
           <Sequence DisplayName="Gradle Build" sap2010:WorkflowViewState.IdRef="Sequence_5">
-            <Sequence.Variables>
-              <Variable x:TypeArguments="x:String" Name="pscpCommand" />
-            </Sequence.Variables>
-            <mtbwa:WriteBuildMessage DisplayName="Gradle Command Execution" sap2010:WorkflowViewState.IdRef="WriteBuildMessage_8" Importance="[Microsoft.TeamFoundation.Build.Client.BuildMessageImportance.High]" Message="[gradleCommandExecution + &quot; -b &quot;&quot;&quot; + gradleBuildScriptLocalPath + &quot;\&quot; + gradleBuildScriptName + &quot;&quot;&quot; &quot; + gradleCommandOptions + &quot; &quot; + GradleBuildArguments]" mva:VisualBasic.Settings="Assembly references and imported namespaces serialized as XML namespaces" />
-            <mtbwa:InvokeProcess Arguments="[&quot;-b &quot; + gradleBuildScriptName + &quot; &quot; + gradleCommandOptions + &quot; &quot; + GradleBuildArguments]" DisplayName="Execute Gradle Build" FileName="[gradleCommandExecution]" sap2010:WorkflowViewState.IdRef="InvokeProcess_1" WorkingDirectory="[gradleBuildScriptLocalPath]">
+            <Assign sap2010:WorkflowViewState.IdRef="Assign_24">
+              <Assign.To>
+                <OutArgument x:TypeArguments="x:String">[gradleCommandOptions]</OutArgument>
+              </Assign.To>
+              <Assign.Value>
+                <InArgument x:TypeArguments="x:String">[" -b """ + gradleBuildScriptLocalPath + "\" + gradleBuildScriptName + """ " + gradleCommandOptions]</InArgument>
+              </Assign.Value>
+            </Assign>
+            <ForEach x:TypeArguments="x:String" DisplayName="ForEach&lt;String&gt;" sap2010:WorkflowViewState.IdRef="ForEach`1_3" Values="[GradleTasks]">
+              <ActivityAction x:TypeArguments="x:String">
+                <ActivityAction.Argument>
+                  <DelegateInArgument x:TypeArguments="x:String" Name="gradleTask" />
+                </ActivityAction.Argument>
+                <Assign sap2010:WorkflowViewState.IdRef="Assign_25">
+                  <Assign.To>
+                    <OutArgument x:TypeArguments="x:String">[gradleCommandOptions]</OutArgument>
+                  </Assign.To>
+                  <Assign.Value>
+                    <InArgument x:TypeArguments="x:String">[gradleCommandOptions + " " + gradleTask]</InArgument>
+                  </Assign.Value>
+                </Assign>
+              </ActivityAction>
+            </ForEach>
+            <mtbwa:WriteBuildMessage DisplayName="Gradle Command Execution" sap2010:WorkflowViewState.IdRef="WriteBuildMessage_8" Importance="[Microsoft.TeamFoundation.Build.Client.BuildMessageImportance.High]" Message="[gradleCommandExecution + &quot; &quot; + gradleCommandOptions]" mva:VisualBasic.Settings="Assembly references and imported namespaces serialized as XML namespaces" />
+            <mtbwa:InvokeProcess Arguments="[gradleCommandOptions]" DisplayName="Execute Gradle Build" FileName="[gradleCommandExecution]" sap2010:WorkflowViewState.IdRef="InvokeProcess_1" WorkingDirectory="[gradleBuildScriptLocalPath]">
               <mtbwa:InvokeProcess.ErrorDataReceived>
                 <ActivityAction x:TypeArguments="x:String">
                   <ActivityAction.Argument>
@@ -404,7 +426,7 @@
         </TryCatch.Catches>
       </TryCatch>
     </mtbwa:AgentScope>
-    <sads:DebugSymbol.Symbol>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</sads:DebugSymbol.Symbol>
+    <sads:DebugSymbol.Symbol>d2ZEOlxNaWNyb3NvZnRcU2FtcGxlc1xURlNcR3JhZGxlQnVpbGRcR3JhZGxlQnVpbGRUZW1wbGF0ZVxHcmFkbGVCdWlsZFRlbXBsYXRlXEdyYWRsZUdpdFRlbXBsYXRlLjEyLnhhbWygAQHDAQHKAQEGAY0FAZQFAQUB5wEB7wQBBAG9BQHEBQEDAWUBpAEBAn8DrgMOAgEBgAEFgAGyAQMB5QGBAQWsAxgCAQKAAUWAAVoDAeYBgQHwAYEBzAICAQaBAYIBgQHjAQIBBYEB3QKBAYsDAgEEhAE2hAFHAgEDjwEHjwHFAQMB4QGQAQe2ARIDAbwBtwEHtAISAgFmtQIHtQK8AQIBYLYCB7YC4QECAVy3Agf5AhICASv6AgerAxICAQePAaUBjwGqAQMB5AGPATOPATgDAeMBjwG9AY8BwgEDAeIBkQEJkQHjAQMB3QGSAQmSAdkBAwHZAZMBCZoBEgMB1AGbAQmiARIDAc4BowEJrQEUAwHCAa4BCbUBEgMBvQG4AQm8AQ4DAbYBvQEJ6wEOAwGVAewBCY8CFAIBfJACCbMCFAIBZ7UCJrUCOQIBZLUCQbUCVQIBYrUChwG1Ao0BAgFhtgLBAbYC3gECAV62AnW2AnsCAV25AgvkAhYCATf0Agv3AhYCATHsAg/vAhoCASz8AgucAxACAQ2kAw+nAxoCAQiRAdIBkQHgAQMB3wGRAb0BkQHKAQMB3gGSAcgBkgHWAQMB2wGSAbgBkgHAAQMB2gGYATSYAVwDAdcBlQE1lQFUAwHVAaABNKABkQEDAdEBnQE1nQFMAwHPAaQBC6QBlAIDAckBpQELrAEUAwHDAbMBNLMBWwMBwAGwATWwAUwDAb4BuAEXuAE6AwG3AboBDboB3wIDAbkBvQEXvQFwAwGWAb8BDdgBGAMBpAHbAQ3pARIDAZkB7gENgwIYAwGAAYsCEYsC7wICAX2SAg2nAhICAWuvAhGvAu0CAgFougINwQIWAgFVwgIN0AIXAgFM0QIN0QKEAwIBR9ICDeMCIwIBOPUCDfUCxwECATP2Ag32AoABAgEy7QIR7QK1AQIBLu4CEe4CgwECAS38Ahn8AnwCAQ7+Ag+aAxoCARGlAxGlA7YBAgEKpgMRpgODAQIBCaQB8wGkAZECAwHMAaQBygGkAesBAwHKAaoBNqoBjAEDAcYBpwE3pwFTAwHEAboBkgG6AfgBAwG7AcEBEcwBHAMBpwHUARXUAeABAwGlAdsBG9sBPwMBmgHdARHdAc8BAwGiAeABEecBGgMBnAHvAQ/zARQDAY8B9AEPggIUAwGBAYsC4AGLAogCAgF/iwKSAYsC1wECAX6SAhuSAj8CAWyUAhGlAhsCAW6vAt8BrwKGAgIBaq8CkQGvAtYBAgFpvwI4vwKcAQIBWLwCObwCTwIBVsICigHCApkBAgFTxwIRzgIaAgFN0QLcAdECnQICAUnRAo4B0QLTAQIBSNICLNICRAIBRNICcdICiwECAULSAs8B0gLtAQIBQOACE+ACzgICATzYAhPYApcBAgE59QJo9QJuAgE29QKrAfUCxAECATTtAmbtAngCAS//AhGGAxoCASSHAxGHA6UDAgEfiAMRmQMnAgESpQNnpQN5AgELwgETxgEYAwGwAccBE8sBGAMBqAHUAVzUAbIBAwGmAd0BWN0BogEDAaMB5QE85QFYAwGfAeIBPeIBVQMBnQHvAR3vAUEDAZAB8QET8QHnAgMBkgH0AR30AWIDAYIB9gETgAIeAwGEAZQCjgGUAqsBAgF7mQIVowIgAgFvzAI8zAJlAgFQyQI9yQJTAgFO4ALaAeAC5wECAT7gAowB4ALRAQIBPdgChwHYApQBAgE6hAM8hAOmAQIBJ4EDPYEDTAIBJYcD1wGHA74CAgEhhwOJAYcDzgECASCIAzCIA0ECARyIA2CIA4gBAgEalgMXlgO0AgIBFo4DF44DegIBE8IBIcIBSQMBsQHEARfEAfUCAwGzAccBIccBagMBqQHJARfJAfsBAwGrAfEBmQHxAYACAwGUAfcBFfcB4wEDAYoB+AEV/wEeAwGFAZoCF5oCxwECAXabAheiAiACAXCWA8ABlgPNAQIBGJYDcpYDtwECAReOA2qOA3cCARTEAaIBxAGOAgMBtQHJAd4ByQH4AQMBrgHJAacByQHWAQMBrAH3AdMB9wHgAQMBjQH3AaAB9wHLAQMBiwH9AUD9AV0DAYgB+gFB+gFXAwGGAZoCtwGaAsQBAgF5mgKhAZoCrwECAXegAkKgAnYCAXOdAkOdAlkCAXE=</sads:DebugSymbol.Symbol>
   </Sequence>
   <sap2010:WorkflowViewState.ViewStateManager>
     <sap2010:ViewStateManager>
@@ -477,6 +499,7 @@
           </scg:Dictionary>
         </sap:WorkflowViewStateService.ViewState>
       </sap2010:ViewStateData>
+      <sap2010:ViewStateData Id="WriteBuildMessage_15" sap:VirtualizedContainerService.HintSize="200,22" />
       <sap2010:ViewStateData Id="Catch`1_4" sap:VirtualizedContainerService.HintSize="490,108">
         <sap:WorkflowViewStateService.ViewState>
           <scg:Dictionary x:TypeArguments="x:String, x:Object">
@@ -504,6 +527,7 @@
       </sap2010:ViewStateData>
       <sap2010:ViewStateData Id="ForEach`1_2" sap:VirtualizedContainerService.HintSize="294,394" />
       <sap2010:ViewStateData Id="If_23" sap:VirtualizedContainerService.HintSize="464,542" />
+      <sap2010:ViewStateData Id="WriteBuildMessage_16" sap:VirtualizedContainerService.HintSize="200,22" />
       <sap2010:ViewStateData Id="Catch`1_5" sap:VirtualizedContainerService.HintSize="468,108">
         <sap:WorkflowViewStateService.ViewState>
           <scg:Dictionary x:TypeArguments="x:String, x:Object">
@@ -522,11 +546,14 @@
       </sap2010:ViewStateData>
       <sap2010:ViewStateData Id="GitPull_1" sap:VirtualizedContainerService.HintSize="1018,22" />
       <sap2010:ViewStateData Id="AssociateChanges_1" sap:VirtualizedContainerService.HintSize="1018,22" />
-      <sap2010:ViewStateData Id="WriteBuildMessage_8" sap:VirtualizedContainerService.HintSize="234,22" />
+      <sap2010:ViewStateData Id="Assign_24" sap:VirtualizedContainerService.HintSize="287,60" />
+      <sap2010:ViewStateData Id="Assign_25" sap:VirtualizedContainerService.HintSize="242,60" />
+      <sap2010:ViewStateData Id="ForEach`1_3" sap:VirtualizedContainerService.HintSize="287,208" />
+      <sap2010:ViewStateData Id="WriteBuildMessage_8" sap:VirtualizedContainerService.HintSize="287,22" />
       <sap2010:ViewStateData Id="WriteBuildError_1" sap:VirtualizedContainerService.HintSize="200,22" />
       <sap2010:ViewStateData Id="WriteBuildMessage_7" sap:VirtualizedContainerService.HintSize="200,22" />
-      <sap2010:ViewStateData Id="InvokeProcess_1" sap:VirtualizedContainerService.HintSize="234,278" />
-      <sap2010:ViewStateData Id="Sequence_5" sap:VirtualizedContainerService.HintSize="256,464">
+      <sap2010:ViewStateData Id="InvokeProcess_1" sap:VirtualizedContainerService.HintSize="287,278" />
+      <sap2010:ViewStateData Id="Sequence_5" sap:VirtualizedContainerService.HintSize="309,812">
         <sap:WorkflowViewStateService.ViewState>
           <scg:Dictionary x:TypeArguments="x:String, x:Object">
             <x:Boolean x:Key="IsExpanded">True</x:Boolean>
@@ -559,7 +586,7 @@
           </scg:Dictionary>
         </sap:WorkflowViewStateService.ViewState>
       </sap2010:ViewStateData>
-      <sap2010:ViewStateData Id="TryCatch_1" sap:VirtualizedContainerService.HintSize="1018,1203" />
+      <sap2010:ViewStateData Id="TryCatch_1" sap:VirtualizedContainerService.HintSize="1018,1551" />
       <sap2010:ViewStateData Id="Assign_23" sap:VirtualizedContainerService.HintSize="242,60" />
       <sap2010:ViewStateData Id="WriteBuildMessage_14" sap:VirtualizedContainerService.HintSize="242,22" />
       <sap2010:ViewStateData Id="WriteBuildError_3" sap:VirtualizedContainerService.HintSize="200,22" />
@@ -591,15 +618,15 @@
         </sap:WorkflowViewStateService.ViewState>
       </sap2010:ViewStateData>
       <sap2010:ViewStateData Id="TryCatch_6" sap:VirtualizedContainerService.HintSize="1018,1303" />
-      <sap2010:ViewStateData Id="AgentScope_1" sap:VirtualizedContainerService.HintSize="1040,7472" />
-      <sap2010:ViewStateData Id="Sequence_6" sap:VirtualizedContainerService.HintSize="1062,7658">
+      <sap2010:ViewStateData Id="AgentScope_1" sap:VirtualizedContainerService.HintSize="1040,7820" />
+      <sap2010:ViewStateData Id="Sequence_6" sap:VirtualizedContainerService.HintSize="1062,8006">
         <sap:WorkflowViewStateService.ViewState>
           <scg:Dictionary x:TypeArguments="x:String, x:Object">
             <x:Boolean x:Key="IsExpanded">True</x:Boolean>
           </scg:Dictionary>
         </sap:WorkflowViewStateService.ViewState>
       </sap2010:ViewStateData>
-      <sap2010:ViewStateData Id="TfsBuild.Process_1" sap:VirtualizedContainerService.HintSize="1102,7738">
+      <sap2010:ViewStateData Id="TfsBuild.Process_1" sap:VirtualizedContainerService.HintSize="1102,8086">
         <sap:WorkflowViewStateService.ViewState>
           <scg:Dictionary x:TypeArguments="x:String, x:Object">
             <x:Boolean x:Key="ShouldExpandAll">True</x:Boolean>
