@@ -11,9 +11,7 @@
     .\DownloadBuildBinariesFromAzureStorage `
 		-StorageAccountName <myStorageAccountName> -StorageAccountKey <myStorageAccountKey> `
 		-ContainerName <myContainerName> -Destination "<myLocalPath>" `
-		-SMTPServer <smtp.myserver.com> -SMTPPort <portNumber> `
-		-EmailFrom <user@domain.com> -EmailTo "<user2@domain2.com, user3@domain.com>" `
-		-SMTPUserName <username> -SMTPPassword <password>
+		-BlobNameFilter <blobNameFilter>
 #>
 
 param (
@@ -33,29 +31,9 @@ param (
 	[Parameter(Mandatory = $true)]
 	$Destination,
 	
-	# SMTP Server
+	# Provide the starting string of the Blob Name which will be matched while downloading blobs
 	[Parameter(Mandatory = $true)]
-	$SMTPServer,
-	
-	# SMTP Port
-	[Parameter(Mandatory = $true)]
-	$SMTPPort,
-	
-	# Email From Address
-	[Parameter(Mandatory = $true)]
-	$EmailFrom,
-	
-	# Email To Addresses, comma separated
-	[Parameter(Mandatory = $true)]
-	[string[]]$EmailTo,
-	
-    # SMTP User name
-    [Parameter(Mandatory = $true)]	
-	$SMTPUserName,
-	
-	# SMTP Password
-    [Parameter(Mandatory = $true)]	
-	$SMTPPassword
+	$BlobNameFilter
 )
 
 
@@ -63,15 +41,15 @@ Try
 {
 	# Reset the error variable
 	$error.clear()
-	
-	# Set the properties for emailing the status of download
-	$emailSubject = "Download Build Binaries - Status" 
-	$emailBody = "" 
-	$SMTPClient = New-Object Net.Mail.SmtpClient($SMTPServer, $SMTPPort) 
-	$SMTPClient.EnableSsl = $true 
-	$SMTPClient.Credentials = New-Object System.Net.NetworkCredential($SMTPUserName, $SMTPPassword); 
-    $errorFlag = $false
 
+    $cmdletError = ""
+	
+	# Set the properties for logging the status of download
+	$logFile = "C:\DownloadBuildBinariesFromAzureStorage.log" 
+	$logFileContent =  "================================================================================================================================`n" `
+					 + "                                 DOWNLOAD STATUS FOR BUILD - " + $BlobNameFilter + "                                            `n" `
+					 + "================================================================================================================================`n"
+ 
     function logAzureError ($errorObj)
     {
 	    $errorMsg = $errorObj.InvocationInfo.InvocationName.ToString() + "  :  " + $errorObj.ToString() + "`n" `
@@ -85,76 +63,69 @@ Try
 
 	# Create the Azure Storage Context using the Account Name and Account Key
 	$context = New-AzureStorageContext -StorageAccountName $StorageAccountName -StorageAccountKey $StorageAccountKey
-	if ($error.Count -gt 0)
+	$cmdletError = ""
+	
+    if ($error.Count -gt 0)
 	{
-		$errorFlag = $true
-		$emailBody = logAzureError $error[0]
+		$cmdletError = logAzureError $error[0]
+		$logFileContent = $logFileContent + "`n" + $cmdletError
 	}
 	else
 	{
-		# List the Azure Blobs in a given container
-		$blobsList = Get-AzureStorageBlob -container $ContainerName -context $context 
+        # List the Azure Blobs matching the BlobNameFilter
+        $BlobNameFilter = $BlobNameFilter + "*"
+		$blobsList = Get-AzureStorageBlob -container $ContainerName -context $context -Blob $BlobNameFilter
+        $cmdletError = ""
+
 		if ($error.Count -gt 0)
 		{
-			$errorFlag = $true
-			$emailBody = logAzureError $error[0]
+			$cmdletError = logAzureError $error[0]
+            $logFileContent = $logFileContent + "`n" + $cmdletError
 		}
 		else 
 		{
 			# Download each of the listed blobs to the destination folder
 			foreach($blob in $blobsList)
 			{
-				$downloadResult = Get-AzureStorageBlobContent -container $ContainerName -context $context -blob $blob.Name -Force -Destination $Destination
-                $downloadError = ""
-				if ($error.Count -gt 0)	
-				{
-                    $errorFlag = $true
+				
+		        $downloadResult = Get-AzureStorageBlobContent -container $ContainerName -context $context -blob $blob.Name -Force -Destination $Destination
+		        $cmdletError = ""
 
-                    $downloadError = logAzureError $error[0]
+		        if ($error.Count -gt 0)	
+		        {
+			        $cmdletError = logAzureError $error[0]
 
-                    $emailBody = $emailBody + "`n" `
-                                    + "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~FAILURE START~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~`n" `
-                                    + $downloadError + "`n" `
-                                    + "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~FAILURE END~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~`n" 
-                    
-                    # Reset the error variable, else for all subsequent downloads, the previous error will be considered
-	                $error.clear()
-				}
-                else
-                {
-                    $emailBody = $emailBody + "`n" `
-                                    + "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~SUCCESS START~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~`n" `
-                                    + "AbsoluteUri  : " + $downloadResult.ICloudBlob.Uri.AbsoluteUri + "`n" `
-                                    + "Blob Name    : " + $downloadResult.Name + "`n" `
-                                    + "Blob Type    : " + $downloadResult.BlobType + "`n" `
-                                    + "Length       : " + $downloadResult.Length + "`n" `
-                                    + "ContentType  : " + $downloadResult.ContentType + "`n" `
-                                    + "LastModified : " + $downloadResult.LastModified.UtcDateTime + "`n" `
-                                    + "SnapshotTime : " + $downloadResult.SnapshotTime + "`n" `
-                                    + "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~SUCCESS END~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~`n"
-                }
-			}
-		}
+			        $logFileContent = $logFileContent + "`n" `
+								        + "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~FAILURE START~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~`n" `
+								        + $cmdletError + "`n" `
+								        + "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~FAILURE END~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~`n" 
+		        }
+		        else
+		        {
+			        $logFileContent = $logFileContent + "`n" `
+								        + "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~SUCCESS START~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~`n" `
+								        + "AbsoluteUri  : " + $downloadResult.ICloudBlob.Uri.AbsoluteUri + "`n" `
+								        + "Blob Name    : " + $downloadResult.Name + "`n" `
+								        + "Blob Type    : " + $downloadResult.BlobType + "`n" `
+								        + "Length       : " + $downloadResult.Length + "`n" `
+								        + "ContentType  : " + $downloadResult.ContentType + "`n" `
+								        + "LastModified : " + $downloadResult.LastModified.UtcDateTime + "`n" `
+								        + "SnapshotTime : " + $downloadResult.SnapshotTime + "`n" `
+								        + "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~SUCCESS END~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~`n"
+		        }
+            }
+        }
 	}
 }
 Catch
 {
     $ErrorMessage = $_.Exception.Message
     $FailedItem = $_.Exception.ItemName
-	$errorFlag = $true
-	$emailBody = "Error occurred while Downloading Build Binaries!`nException Message: $ErrorMessage`nFailed Item: $FailedItem"
+	$logFileContent = $logFileContent + "`n" `
+						+ "Error occurred while Downloading Build Binaries!`nException Message: $ErrorMessage`nFailed Item: $FailedItem"
 }
 Finally
 {
-	if ($errorFlag -eq $true)
-    {
-        $emailSubject = "$emailSubject - ERROR!" 
-    }
-    else
-    {
-        $emailSubject = "$emailSubject - SUCCESS" 
-    }
-
-    # Send the email
-	$SMTPClient.Send($EmailFrom, $EmailTo, $emailSubject, $emailBody)
+    # Log the details to log file
+	$logFileContent >> $logFile
 }
