@@ -1,12 +1,16 @@
 #!/bin/bash
 
-# Store the original IFS (Internal Field Separator)
-originalIFS=$IFS
+# Redirect stdout ( > ) and stderr ( 2> ) to a log file under user's home direcotry
+# Redirect the stdout and stderr streams using "tee" and a named pipe ( >() )
+# Log file will be appended for subsequent runs
+exec > >(tee -a $HOME/$0.log)
+exec 2> >(tee -a $HOME/$0.log >&2)
+
 
 # Validate the number of input arguments
 if [ $# -ne 5 ]
 then
-    echo "Usage: $0 <storageAccountName> <storageAccountKey> <containerName> <blobNamePrefix> <destinationPath>"
+    echo "Usage: $0 <storageAccountName> <storageAccountKey> <containerName> <blobNamePrefix> <destinationPath>" >&2
     exit 2
 fi
 
@@ -15,6 +19,15 @@ storageAccountKey=$2
 containerName=$3
 blobNamePrefix=$4
 destination=$5
+
+
+echo "============================================================================================================================"
+echo "                          DOWNLOAD STATUS FOR BUILD - $blobNamePrefix"
+echo "============================================================================================================================"
+
+
+# Store the original IFS (Internal Field Separator)
+originalIFS=$IFS
 
 
 # Change the IFS to newline character (\n) so that each output line while listing blobs can be stored into an array
