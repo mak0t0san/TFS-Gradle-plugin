@@ -11,7 +11,7 @@
     .\DownloadBuildBinariesFromAzureStorage `
 		-StorageAccountName <myStorageAccountName> -StorageAccountKey <myStorageAccountKey> `
 		-ContainerName <myContainerName> -Destination "<myLocalPath>" `
-		-BlobNameFilter <blobNameFilter>
+		-BlobNamePrefix <blobNamePrefix>
 #>
 
 param (
@@ -31,9 +31,9 @@ param (
 	[Parameter(Mandatory = $true)]
 	$Destination,
 	
-	# Provide the starting string of the Blob Name which will be matched while downloading blobs
+	# The Blob Name Prefix of the blobs to be downloaded
 	[Parameter(Mandatory = $true)]
-	$BlobNameFilter
+	$BlobNamePrefix
 )
 
 
@@ -47,7 +47,7 @@ Try
 	# Set the properties for logging the status of download
 	$logFile = "C:\DownloadBuildBinariesFromAzureStorage.log" 
 	$logFileContent =  "================================================================================================================================`n" `
-					 + "                                 DOWNLOAD STATUS FOR BUILD - " + $BlobNameFilter + "                                            `n" `
+					 + "                                 DOWNLOAD STATUS FOR BUILD - `"" + $BlobNamePrefix + "`"                                        `n" `
 					 + "================================================================================================================================`n"
  
     function logAzureError ($errorObj)
@@ -72,9 +72,8 @@ Try
 	}
 	else
 	{
-        # List the Azure Blobs matching the BlobNameFilter
-        $BlobNameFilter = $BlobNameFilter + "*"
-		$blobsList = Get-AzureStorageBlob -container $ContainerName -context $context -Blob $BlobNameFilter
+        # List the Azure Blobs matching the BlobNamePrefix
+		$blobsList = Get-AzureStorageBlob -Container $ContainerName -Context $context -Prefix $BlobNamePrefix
         $cmdletError = ""
 
 		if ($error.Count -gt 0)
@@ -88,7 +87,7 @@ Try
 			foreach($blob in $blobsList)
 			{
 				
-		        $downloadResult = Get-AzureStorageBlobContent -container $ContainerName -context $context -blob $blob.Name -Force -Destination $Destination
+		        $downloadResult = Get-AzureStorageBlobContent -Container $ContainerName -Context $context -Blob $blob.Name -Destination $Destination -Force
 		        $cmdletError = ""
 
 		        if ($error.Count -gt 0)	
