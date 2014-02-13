@@ -36,7 +36,6 @@ param (
 	$BlobNamePrefix
 )
 
-
 function logAzureError ($errorObj)
 {
 	    $errorMsg = $errorObj.InvocationInfo.InvocationName.ToString() + "  :  " + $errorObj.ToString() + "`n" `
@@ -61,53 +60,51 @@ Try
 					 + "                                 DOWNLOAD STATUS FOR BUILD - `"" + $BlobNamePrefix + "`"                                        `n" `
 					 + "================================================================================================================================`n"
 
-	# Check if Azure PowerShell module exists, before installing it
-	$azureCmdlet = Get-Module -Name Azure
+    $installLogOut = "C:\AzurePowerShellInstallOutput.log"
+    $installLogErr = "C:\AzurePowerShellInstallError.log"
+
+	# Check if Azure PowerShell module exists, else install it
+	$azureCmdlet = Get-Module -ListAvailable -Name 'Azure'
 	if ($azureCmdlet.Name -eq "Azure")
 	{
-		$logFileContent = $logFileContent + "Windows Azure PowerShell is already installed. `n"
+		$logFileContent = $logFileContent + "Windows Azure PowerShell module is already available. `n"
 		$continueScript = $true
 	}
 	else
 	{
 		$logFileContent = $logFileContent + "Windows Azure PowerShell is not installed. `n"
 		
-		# Check if Chocolatey command exists, before installing it
-		Get-Command 'cinst'
+		# Check if Web PI Command exists, else install it so that Azure PowerShell can be installed through it
+		Get-Command 'webpicmd'
 		if ($error.Count -gt 0)
 		{
 			# Reset the error variable
  	        $error.clear()
 					
-			$logFileContent = $logFileContent + "Chocolatey does not exist. Installation will start.... `n"
+			$logFileContent = $logFileContent + "Web PI Command does not exist. Installation will start.... `n"
 			
-			$origExecPolicy = Get-ExecutionPolicy
-			$logFileContent = $origExecPolicy
-			Set-ExecutionPolicy 'Unrestricted'
 			
-			# Install Chocolatey
-			iex ((new-object net.webclient).DownloadString('https://chocolatey.org/install.ps1'))
-			
-			Set-ExecutionPolicy $origExecPolicy	
+			# Download and Install Web Platform Installer Command Line
+			(new-object net.webclient).DownloadFile('http://download.microsoft.com/download/7/0/4/704CEB4C-9F42-4962-A2B0-5C84B0682C7A/WebPlatformInstaller_amd64_en-US.msi', 'C:\WebPICmd.msi')
+			Start-Process -FilePath 'C:\WebPICmd.msi' -ArgumentList '/quiet' -PassThru | Wait-Process
+            
 
-			# Update the environment variable PATH
-			$systemDrive = iex ('$env:systemdrive')
-			$pathEnv = iex ('$env:path')
-			$pathEnv = $pathEnv + ';' + $systemDrive + '\chocolatey\bin'
-			iex ('$env:path = "' + $pathEnv + '"')				
-			
-			$logFileContent = $logFileContent + "....Chocolatey has been successfully installed. `n"
+            # Set the %PATH% environment variable from the system to the environment variable in the PowerShell session
+            # Else, the updated %PATH% will not be available during the script run
+            $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine")
+
+			$logFileContent = $logFileContent + "....Web PI Command has been successfully installed. `n"
 		}
 		else
 		{
-			$logFileContent = $logFileContent + "Chocolatey is already installed. `n"
+			$logFileContent = $logFileContent + "Web PI Command is already installed. `n"
 		}
 
 		$logFileContent = $logFileContent + "Windows Azure PowerShell installation will start..... `n"
 		
 		# Install WindowsAzurePowerShell
-		iex ('cinst WindowsAzurePowershell')
-		
+		Start-Process 'webpicmd' -ArgumentList '/Install /AcceptEULA /Products:WindowsAzurePowershell' -NoNewWindow -PassThru | Wait-Process
+
 		$logFileContent = $logFileContent + "....Windows Azure PowerShell has been successfully installed. `n"
 		
 		$continueScript = $true
@@ -115,6 +112,12 @@ Try
 	
 	if ($continueScript)
 	{
+	
+		$env:PSModulePath = [System.Environment]::GetEnvironmentVariable("PSModulePath","Machine")
+
+        # Load the Azure module
+		Import-Module Azure
+		
 		# Create the Azure Storage Context using the Account Name and Account Key
 		$context = New-AzureStorageContext -StorageAccountName $StorageAccountName -StorageAccountKey $StorageAccountKey
 		$cmdletError = ""
