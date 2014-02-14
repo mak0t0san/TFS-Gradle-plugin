@@ -1,8 +1,5 @@
-﻿<Activity mc:Ignorable="sads sap sap2010" x:Class="TfsBuild.Process" this:Process.BuildNumberFormat="[&quot;$(BuildDefinitionName)_$(Date:yyyyMMdd)$(Rev:.r)&quot;]" this:Process.CleanRepository="[True]" this:Process.AgentSettings="[New Microsoft.TeamFoundation.Build.Common.BuildParameter(&quot; { &quot;&quot;MaxExecutionTime&quot;&quot;: &quot;&quot;00:00:00&quot;&quot;, &quot;&quot;MaxWaitTime&quot;&quot;: &quot;&quot;04:00:00&quot;&quot;, &quot;&quot;Name&quot;&quot;: &quot;&quot;*&quot;&quot;, &quot;&quot;Tags&quot;&quot;: [], &quot;&quot;TagComparison&quot;&quot;: &quot;&quot;MatchExactly&quot;&quot; } &quot;)]" this:Process.CreateWorkItem="[True]" this:Process.UpdateAssociatedWorkItems="[True]" this:Process.SupportedReasons="Manual, IndividualCI, BatchedCI, Schedule, ScheduleForced, UserCreated" this:Process.BuildProcessVersion="12.0"
+﻿<Activity mc:Ignorable="sads sap sap2010" x:Class="TfsBuild.Process" this:Process.BuildNumberFormat="[&quot;$(BuildDefinitionName)_$(Date:yyyyMMdd)$(Rev:.r)&quot;]" this:Process.CleanRepository="[True]" this:Process.AgentSettings="[New Microsoft.TeamFoundation.Build.Common.BuildParameter(&quot; { &quot;&quot;MaxExecutionTime&quot;&quot;: &quot;&quot;00:00:00&quot;&quot;, &quot;&quot;MaxWaitTime&quot;&quot;: &quot;&quot;04:00:00&quot;&quot;, &quot;&quot;Name&quot;&quot;: &quot;&quot;*&quot;&quot;, &quot;&quot;Tags&quot;&quot;: [], &quot;&quot;TagComparison&quot;&quot;: &quot;&quot;MatchExactly&quot;&quot; } &quot;)]" this:Process.CreateWorkItem="[True]" this:Process.UpdateAssociatedWorkItems="[True]" this:Process.SupportedReasons="Manual, IndividualCI, BatchedCI, Schedule, ScheduleForced, UserCreated" this:Process.BuildProcessVersion="12.0" this:Process.ContinuousDeployment="False"
  xmlns="http://schemas.microsoft.com/netfx/2009/xaml/activities"
- xmlns:c="clr-namespace:CopyBuildOutputToTFS;assembly=BuildAgentFileLocation"
- xmlns:c1="clr-namespace:CopyBuildOutputToTFS;assembly=CopyBuildOutputToTFS"
- xmlns:d="clr-namespace:DeploymentToAzureVM;assembly=DeploymentToAzureVM"
  xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
  xmlns:mtba="clr-namespace:Microsoft.TeamFoundation.Build.Activities;assembly=Microsoft.TeamFoundation.Build.Activities"
  xmlns:mtbac="clr-namespace:Microsoft.TeamFoundation.Build.Activities.Core;assembly=Microsoft.TeamFoundation.Build.Activities"
@@ -36,11 +33,12 @@
     <x:Property Name="GradleBuildScript" Type="InArgument(s:String[])" />
     <x:Property Name="GradleCommand" Type="InArgument(x:String)" />
     <x:Property Name="GradleSettingsFile" Type="InArgument(s:String[])" />
-    <x:Property Name="AzureStorageAccountKey" Type="InArgument(x:String)" />
     <x:Property Name="GradleWrapperBatchFile" Type="InArgument(s:String[])" />
     <x:Property Name="GradleTasks" Type="InArgument(s:String[])" />
     <x:Property Name="GradleInitScripts" Type="InArgument(s:String[])" />
+    <x:Property Name="ContinuousDeployment" Type="InArgument(x:Boolean)" />
     <x:Property Name="AzureStorageContainerURL" Type="InArgument(x:String)" />
+    <x:Property Name="AzureStorageAccountKey" Type="InArgument(x:String)" />
   </x:Members>
   <this:Process.CheckoutOverride>
     <InArgument x:TypeArguments="x:String" />
@@ -55,8 +53,9 @@
       <mtbw:ProcessParameterMetadata Category="#200 Gradle Build" Description="Applicable only if Gradle comand is &quot;gradlew&quot;. Relative path to the Gradle Wrapper Batch file (gradlew.bat)" DisplayName="4. Gradle Wrapper Batch File" Editor="Microsoft.TeamFoundation.Build.Controls.BuildProjectListRelativePathEditor, Microsoft.TeamFoundation.Build.Controls" ParameterName="GradleWrapperBatchFile" />
       <mtbw:ProcessParameterMetadata Category="#300 Gradle Advanced" Description="Relative path to the Gradle Init Script(s). This will be executed with the -I option." DisplayName="1. Gradle Init Script(s)" Editor="Microsoft.TeamFoundation.Build.Controls.BuildProjectListRelativePathEditor, Microsoft.TeamFoundation.Build.Controls" ParameterName="GradleInitScripts" />
       <mtbw:ProcessParameterMetadata Category="#300 Gradle Advanced" Description="Relative path to the Gradle Settings file. This will be executed with the -c option." DisplayName="2. Gradle Settings File" Editor="Microsoft.TeamFoundation.Build.Controls.BuildProjectListRelativePathEditor, Microsoft.TeamFoundation.Build.Controls" ParameterName="GradleSettingsFile" />
-      <mtbw:ProcessParameterMetadata Category="#400 Upload To Azure Storage" Description="Provide the Azure Storage Container URL" DisplayName="1. Azure Storage Container URL" ParameterName="AzureStorageContainerURL" />
-      <mtbw:ProcessParameterMetadata Category="#400 Upload To Azure Storage" Description="Provide the Azure Storage Account Key" DisplayName="2. Azure Storage Account Key" Editor="" ParameterName="AzureStorageAccountKey" />
+      <mtbw:ProcessParameterMetadata Category="#400 Continuous Deployment" Description="Set this to true for continuous deployment." DisplayName="1. Continuous Deployment" ParameterName="ContinuousDeployment" />
+      <mtbw:ProcessParameterMetadata Category="#400 Continuous Deployment" Description="Provide the Azure Storage Container URL" DisplayName="2. Azure Storage Container URL" ParameterName="AzureStorageContainerURL" />
+      <mtbw:ProcessParameterMetadata Category="#400 Continuous Deployment" Description="Provide the Azure Storage Account Key" DisplayName="3. Azure Storage Account Key" Editor="" ParameterName="AzureStorageAccountKey" />
       <mtbw:ProcessParameterMetadata Category="#500 Advanced" Description="Specify the format for the number of this build." DisplayName="Build number format" Editor="Microsoft.TeamFoundation.Build.Controls.BuildNumberFormatEditor, Microsoft.TeamFoundation.Build.Controls" ParameterName="BuildNumberFormat" />
       <mtbw:ProcessParameterMetadata Category="#500 Advanced" Description="Specify the Name and/or Tags (and other properties) that will be used to select an appropriate Agent for the build." DisplayName="Agent settings" ParameterName="AgentSettings" ValueFormatString="Use agent where Name={Name} and Tags={Tags} ({TagComparison})" />
       <mtbw:ProcessParameterMetadata BrowsableWhen="Always" Description="Specify the maximum amount of time that you want to allow for this part of the work flow to run. The default value is zero which means there is no timeout." DisplayName="Maximum agent execution time" Editor="@Type=TimeSpan" ParameterName="AgentSettings.MaxExecutionTime" />
@@ -317,10 +316,10 @@
           </TryCatch.Catches>
         </TryCatch>
       </Sequence>
-      <Sequence DisplayName="Validate Azure Storage Upload inputs" sap2010:WorkflowViewState.IdRef="Sequence_19">
-        <If Condition="[String.IsNullOrEmpty(AzureStorageContainerURL) And String.IsNullOrEmpty(AzureStorageAccountKey)]" DisplayName="Are Azure Storage Account details provided?" sap2010:WorkflowViewState.IdRef="If_27">
+      <Sequence DisplayName="Validate Continuous Deployment inputs" sap2010:WorkflowViewState.IdRef="Sequence_19">
+        <If Condition="[Not ContinuousDeployment]" DisplayName="Is Continuous Deployment True?" sap2010:WorkflowViewState.IdRef="If_27">
           <If.Then>
-            <mtbwa:WriteBuildWarning DisplayName="Skip Azure Storage Upload &amp; Download to VMs" sap2010:WorkflowViewState.IdRef="WriteBuildWarning_4" Importance="[Microsoft.TeamFoundation.Build.Client.BuildMessageImportance.High]" Message="Azure Storage Upload details are not provided. Hence built output will neither be uploaded to Azure Storage nor download to Azure VMs" mva:VisualBasic.Settings="Assembly references and imported namespaces serialized as XML namespaces" />
+            <mtbwa:WriteBuildMessage DisplayName="Continuous Deployment False" sap2010:WorkflowViewState.IdRef="WriteBuildMessage_23" Importance="[Microsoft.TeamFoundation.Build.Client.BuildMessageImportance.High]" Message="Continuous Deployment flag is False. Hence build binaries will not be deployed" mva:VisualBasic.Settings="Assembly references and imported namespaces serialized as XML namespaces" />
           </If.Then>
           <If.Else>
             <If Condition="[String.IsNullOrEmpty(AzureStorageContainerURL) Or String.IsNullOrEmpty(AzureStorageAccountKey)]" DisplayName="Are all Azure Storage Account details provided?" sap2010:WorkflowViewState.IdRef="If_28">
@@ -407,9 +406,9 @@
           </Sequence>
         </TryCatch.Finally>
       </TryCatch>
-      <TryCatch DisplayName="Try - Azure Storage Upload" sap2010:WorkflowViewState.IdRef="TryCatch_6">
+      <TryCatch DisplayName="Try - Continuous Deployment" sap2010:WorkflowViewState.IdRef="TryCatch_6">
         <TryCatch.Try>
-          <If Condition="[Not String.IsNullOrEmpty(AzureStorageContainerURL) And Not String.IsNullOrEmpty(AzureStorageAccountKey)]" DisplayName="If Azure Storage Account Details are provided?" sap2010:WorkflowViewState.IdRef="If_31">
+          <If Condition="[ContinuousDeployment]" DisplayName="If Continuous Deployment is True" sap2010:WorkflowViewState.IdRef="If_31">
             <If.Then>
               <Sequence DisplayName="Azure Storage Upload" sap2010:WorkflowViewState.IdRef="Sequence_22">
                 <Assign DisplayName="Form the AzCopy Command Arguments" sap2010:WorkflowViewState.IdRef="Assign_29">
@@ -450,7 +449,7 @@
                 <DelegateInArgument x:TypeArguments="s:Exception" Name="exception" />
               </ActivityAction.Argument>
               <Sequence DisplayName="Handle Exception" sap2010:WorkflowViewState.IdRef="Sequence_17">
-                <mtba:CreateBuildFailureBug DisplayName="Create a bug for the Azure Storage upload failure" Enabled="[CreateWorkItem]" sap2010:WorkflowViewState.IdRef="CreateBuildFailureBug_2" />
+                <mtba:CreateBuildFailureBug DisplayName="Create a bug for the Continuous Deployment failure" Enabled="[CreateWorkItem]" sap2010:WorkflowViewState.IdRef="CreateBuildFailureBug_2" />
                 <Rethrow DisplayName="Rethrow the exception so the build will stop" sap2010:WorkflowViewState.IdRef="Rethrow_2" />
               </Sequence>
             </ActivityAction>
@@ -458,7 +457,7 @@
         </TryCatch.Catches>
       </TryCatch>
     </mtbwa:AgentScope>
-    <sads:DebugSymbol.Symbol>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</sads:DebugSymbol.Symbol>
+    <sads:DebugSymbol.Symbol>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</sads:DebugSymbol.Symbol>
   </Sequence>
   <sap2010:WorkflowViewState.ViewStateManager>
     <sap2010:ViewStateManager>
@@ -578,7 +577,7 @@
           </scg:Dictionary>
         </sap:WorkflowViewStateService.ViewState>
       </sap2010:ViewStateData>
-      <sap2010:ViewStateData Id="WriteBuildWarning_4" sap:VirtualizedContainerService.HintSize="200,22" />
+      <sap2010:ViewStateData Id="WriteBuildMessage_23" sap:VirtualizedContainerService.HintSize="200,22" />
       <sap2010:ViewStateData Id="Throw_13" sap:VirtualizedContainerService.HintSize="200,22" />
       <sap2010:ViewStateData Id="Throw_12" sap:VirtualizedContainerService.HintSize="200,22" />
       <sap2010:ViewStateData Id="If_29" sap:VirtualizedContainerService.HintSize="464,208" />
@@ -659,7 +658,7 @@
       <sap2010:ViewStateData Id="Catch`1_6" sap:VirtualizedContainerService.HintSize="468,281">
         <sap:WorkflowViewStateService.ViewState>
           <scg:Dictionary x:TypeArguments="x:String, x:Object">
-            <x:Boolean x:Key="IsExpanded">False</x:Boolean>
+            <x:Boolean x:Key="IsExpanded">True</x:Boolean>
             <x:Boolean x:Key="IsPinned">False</x:Boolean>
           </scg:Dictionary>
         </sap:WorkflowViewStateService.ViewState>
