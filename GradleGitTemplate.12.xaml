@@ -67,12 +67,12 @@
       <mtbw:ProcessParameterMetadata Category="#400 Continuous Deployment" Description="Provide the details to connect to Windows Azure VM(s)" DisplayName="7. Windows VM" ParameterName="WindowsVM" ValueFormatString=" " />
       <mtbw:ProcessParameterMetadata Category="" Description="User Name for Windows VM(s)" DisplayName="7.1. User Name" ParameterName="WindowsVM.UserName" />
       <mtbw:ProcessParameterMetadata Category="" Description="Password for Windows VM(s)" DisplayName="7.2. Password" ParameterName="WindowsVM.Password" />
-      <mtbw:ProcessParameterMetadata Category="" Description="Provide the full path to the SSL Certificate" DisplayName="7.3. SSL Certificate" ParameterName="WindowsVM.Certificate" />
-      <mtbw:ProcessParameterMetadata Category="" Description="Specify the location to which the application should be deployed to." DisplayName="7.4. Application Path" ParameterName="WindowsVM.ApplicationPath" />
+      <mtbw:ProcessParameterMetadata Category="" Description="Provide the full path to the SSL Certificate, which is accessible by the TFS Build Server" DisplayName="7.3. SSL Certificate" ParameterName="WindowsVM.Certificate" />
+      <mtbw:ProcessParameterMetadata Category="" Description="Specify the location on the VM, to which the application should be deployed to." DisplayName="7.4. Application Path" ParameterName="WindowsVM.ApplicationPath" />
       <mtbw:ProcessParameterMetadata Category="#400 Continuous Deployment" Description="Provide the details to connect to Linux Azure VM(s)" DisplayName="8. Linux VM" ParameterName="LinuxVM" ValueFormatString=" " />
       <mtbw:ProcessParameterMetadata Category="" Description="User Name for Linux VM(s)" DisplayName="6.1. User Name" ParameterName="LinuxVM.UserName" />
-      <mtbw:ProcessParameterMetadata Category="" Description="Provide the full path to the SSH Key file" DisplayName="8.2. SSH Key File" Editor="" ParameterName="LinuxVM.SSHKeyFile" />
-      <mtbw:ProcessParameterMetadata Category="" Description="Specify the location to which the application should be deployed to" DisplayName="8.3. Application Path" ParameterName="LinuxVM.ApplicationPath" />
+      <mtbw:ProcessParameterMetadata Category="" Description="Provide the full path to the SSH Key file, which is accessible by the TFS Build Server" DisplayName="8.2. SSH Key File" Editor="" ParameterName="LinuxVM.SSHKeyFile" />
+      <mtbw:ProcessParameterMetadata Category="" Description="Specify the location on the VM, to which the application should be deployed to" DisplayName="8.3. Application Path" ParameterName="LinuxVM.ApplicationPath" />
       <mtbw:ProcessParameterMetadata Category="#500 Advanced" Description="Specify the format for the number of this build." DisplayName="Build number format" Editor="Microsoft.TeamFoundation.Build.Controls.BuildNumberFormatEditor, Microsoft.TeamFoundation.Build.Controls" ParameterName="BuildNumberFormat" />
       <mtbw:ProcessParameterMetadata Category="#500 Advanced" Description="Specify the Name and/or Tags (and other properties) that will be used to select an appropriate Agent for the build." DisplayName="Agent settings" ParameterName="AgentSettings" ValueFormatString="Use agent where Name={Name} and Tags={Tags} ({TagComparison})" />
       <mtbw:ProcessParameterMetadata BrowsableWhen="Always" Description="Specify the maximum amount of time that you want to allow for this part of the work flow to run. The default value is zero which means there is no timeout." DisplayName="Maximum agent execution time" Editor="@Type=TimeSpan" ParameterName="AgentSettings.MaxExecutionTime" />
@@ -115,6 +115,7 @@
       <x:String>System.Windows.Markup</x:String>
       <x:String>TfsBuild</x:String>
       <x:String>Microsoft.TeamFoundation.Build.Activities.Extensions</x:String>
+      <x:String>System.IO</x:String>
     </sco:Collection>
   </TextExpression.NamespacesForImplementation>
   <TextExpression.ReferencesForImplementation>
@@ -162,6 +163,13 @@
         <Variable x:TypeArguments="x:Boolean" Default="False" Name="vmInputsProvided" />
         <Variable x:TypeArguments="x:String" Name="msiExecCmd" />
         <Variable x:TypeArguments="x:String" Default="AzCopy.exe" Name="azCopyExe" />
+        <Variable x:TypeArguments="x:String" Name="winUserName" />
+        <Variable x:TypeArguments="x:String" Name="winPassword" />
+        <Variable x:TypeArguments="x:String" Name="winCertificate" />
+        <Variable x:TypeArguments="x:String" Name="winAppPath" />
+        <Variable x:TypeArguments="x:String" Name="linuxUserName" />
+        <Variable x:TypeArguments="x:String" Name="linuxSSHKey" />
+        <Variable x:TypeArguments="x:String" Name="linuxAppPath" />
       </mtbwa:AgentScope.Variables>
       <mtbac:InitializeEnvironment BinariesFolder="bin" DisplayName="Initialize environment" sap2010:WorkflowViewState.IdRef="InitializeEnvironment_3" SourceFolder="src" TestResultsFolder="tst" />
       <Sequence DisplayName="Initialize Variables" sap2010:WorkflowViewState.IdRef="Sequence_2">
@@ -375,50 +383,124 @@
                 <Throw DisplayName="Throw Exception so that build will stop" Exception="[New Exception(&quot;Cloud Service Name is not provided!&quot;)]" sap2010:WorkflowViewState.IdRef="Throw_17" />
               </If.Then>
             </If>
-            <If Condition="[String.IsNullOrEmpty(WindowsVM.GetValue(Of String)(&quot;UserName&quot;)) And String.IsNullOrEmpty(WindowsVM.GetValue(Of String)(&quot;Password&quot;)) And String.IsNullOrEmpty(WindowsVM.GetValue(Of String)(&quot;Certificate&quot;)) And String.IsNullOrEmpty(WindowsVM.GetValue(Of String)(&quot;ApplicationPath&quot;))]" DisplayName="Validate Windows VM inputs" sap2010:WorkflowViewState.IdRef="If_39">
-              <If.Then>
-                <mtbwa:WriteBuildMessage DisplayName="Continuous Deployment False" sap2010:WorkflowViewState.IdRef="WriteBuildMessage_26" Importance="[Microsoft.TeamFoundation.Build.Client.BuildMessageImportance.High]" Message="Windows VM inputs are not provided. Hence deployment will not happen to any Windows VMs in the Cloud Service, if present" mva:VisualBasic.Settings="Assembly references and imported namespaces serialized as XML namespaces" />
-              </If.Then>
-              <If.Else>
-                <If Condition="[String.IsNullOrEmpty(WindowsVM.GetValue(Of String)(&quot;UserName&quot;)) Or String.IsNullOrEmpty(WindowsVM.GetValue(Of String)(&quot;Password&quot;)) Or String.IsNullOrEmpty(WindowsVM.GetValue(Of String)(&quot;Certificate&quot;)) Or String.IsNullOrEmpty(WindowsVM.GetValue(Of String)(&quot;ApplicationPath&quot;))]" DisplayName="Windows VM - Are all details provided?" sap2010:WorkflowViewState.IdRef="If_38">
-                  <If.Then>
-                    <Throw DisplayName="Throw Exception so that build will stop" Exception="[New Exception(&quot;Windows VM inputs are not completely provided!&quot;)]" sap2010:WorkflowViewState.IdRef="Throw_20" />
-                  </If.Then>
-                  <If.Else>
-                    <Assign DisplayName="VM inputs provided" sap2010:WorkflowViewState.IdRef="Assign_33">
-                      <Assign.To>
-                        <OutArgument x:TypeArguments="x:Boolean">[vmInputsProvided]</OutArgument>
-                      </Assign.To>
-                      <Assign.Value>
-                        <InArgument x:TypeArguments="x:Boolean">True</InArgument>
-                      </Assign.Value>
-                    </Assign>
-                  </If.Else>
-                </If>
-              </If.Else>
-            </If>
-            <If Condition="[String.IsNullOrEmpty(LinuxVM.GetValue(Of String)(&quot;UserName&quot;)) And String.IsNullOrEmpty(LinuxVM.GetValue(Of String)(&quot;SSHKeyFile&quot;)) And String.IsNullOrEmpty(LinuxVM.GetValue(Of String)(&quot;ApplicationPath&quot;))]" DisplayName="Validate Linux VM inputs" sap2010:WorkflowViewState.IdRef="If_41">
-              <If.Then>
-                <mtbwa:WriteBuildMessage DisplayName="Continuous Deployment False" sap2010:WorkflowViewState.IdRef="WriteBuildMessage_27" Importance="[Microsoft.TeamFoundation.Build.Client.BuildMessageImportance.High]" Message="Linux VM inputs are not provided. Hence deployment will not happen to any Linux VMs in the Cloud Service, if present" mva:VisualBasic.Settings="Assembly references and imported namespaces serialized as XML namespaces" />
-              </If.Then>
-              <If.Else>
-                <If Condition="[String.IsNullOrEmpty(LinuxVM.GetValue(Of String)(&quot;UserName&quot;)) Or String.IsNullOrEmpty(LinuxVM.GetValue(Of String)(&quot;SSHKeyFile&quot;)) Or String.IsNullOrEmpty(LinuxVM.GetValue(Of String)(&quot;ApplicationPath&quot;))]" DisplayName="Linux VM - Are all details provided?" sap2010:WorkflowViewState.IdRef="If_40">
-                  <If.Then>
-                    <Throw DisplayName="Throw Exception so that build will stop" Exception="[New Exception(&quot;Linux VM inputs are not completely provided!&quot;)]" sap2010:WorkflowViewState.IdRef="Throw_21" />
-                  </If.Then>
-                  <If.Else>
-                    <Assign DisplayName="VM inputs provided" sap2010:WorkflowViewState.IdRef="Assign_34">
-                      <Assign.To>
-                        <OutArgument x:TypeArguments="x:Boolean">[vmInputsProvided]</OutArgument>
-                      </Assign.To>
-                      <Assign.Value>
-                        <InArgument x:TypeArguments="x:Boolean">True</InArgument>
-                      </Assign.Value>
-                    </Assign>
-                  </If.Else>
-                </If>
-              </If.Else>
-            </If>
+            <Sequence DisplayName="Windows VM" sap2010:WorkflowViewState.IdRef="Sequence_37">
+              <Assign DisplayName="Get Windows UserName" sap2010:WorkflowViewState.IdRef="Assign_40">
+                <Assign.To>
+                  <OutArgument x:TypeArguments="x:String">[winUserName]</OutArgument>
+                </Assign.To>
+                <Assign.Value>
+                  <InArgument x:TypeArguments="x:String">[WindowsVM.GetValue(Of String)("UserName")]</InArgument>
+                </Assign.Value>
+              </Assign>
+              <Assign DisplayName="Get Windows Password" sap2010:WorkflowViewState.IdRef="Assign_41">
+                <Assign.To>
+                  <OutArgument x:TypeArguments="x:String">[winPassword]</OutArgument>
+                </Assign.To>
+                <Assign.Value>
+                  <InArgument x:TypeArguments="x:String">[WindowsVM.GetValue(Of String)("Password")]</InArgument>
+                </Assign.Value>
+              </Assign>
+              <Assign DisplayName="Get Windows SSL Certificate" sap2010:WorkflowViewState.IdRef="Assign_42">
+                <Assign.To>
+                  <OutArgument x:TypeArguments="x:String">[winCertificate]</OutArgument>
+                </Assign.To>
+                <Assign.Value>
+                  <InArgument x:TypeArguments="x:String">[WindowsVM.GetValue(Of String)("Certificate")]</InArgument>
+                </Assign.Value>
+              </Assign>
+              <Assign DisplayName="Get Windows Application Path" sap2010:WorkflowViewState.IdRef="Assign_43">
+                <Assign.To>
+                  <OutArgument x:TypeArguments="x:String">[winAppPath]</OutArgument>
+                </Assign.To>
+                <Assign.Value>
+                  <InArgument x:TypeArguments="x:String">[WindowsVM.GetValue(Of String)("ApplicationPath")]</InArgument>
+                </Assign.Value>
+              </Assign>
+              <If Condition="[String.IsNullOrEmpty(winUserName) And String.IsNullOrEmpty(winPassword) And String.IsNullOrEmpty(winCertificate) And String.IsNullOrEmpty(winAppPath)]" DisplayName="Validate Windows VM inputs" sap2010:WorkflowViewState.IdRef="If_54">
+                <If.Then>
+                  <mtbwa:WriteBuildMessage DisplayName="Continuous Deployment False" sap2010:WorkflowViewState.IdRef="WriteBuildMessage_35" Importance="[Microsoft.TeamFoundation.Build.Client.BuildMessageImportance.High]" Message="Windows VM inputs are not provided. Hence deployment will not happen to any Windows VMs in the Cloud Service, if present" mva:VisualBasic.Settings="Assembly references and imported namespaces serialized as XML namespaces" />
+                </If.Then>
+                <If.Else>
+                  <If Condition="[String.IsNullOrEmpty(winUserName) Or String.IsNullOrEmpty(winPassword) Or String.IsNullOrEmpty(winCertificate) Or String.IsNullOrEmpty(winAppPath)]" DisplayName="Windows VM - Are all details provided?" sap2010:WorkflowViewState.IdRef="If_53">
+                    <If.Then>
+                      <Throw DisplayName="Throw Exception so that build will stop" Exception="[New Exception(&quot;Windows VM inputs are not completely provided!&quot;)]" sap2010:WorkflowViewState.IdRef="Throw_31" />
+                    </If.Then>
+                    <If.Else>
+                      <If Condition="[Not System.IO.File.Exists(winCertificate)]" DisplayName="Does Certificate file exist?" sap2010:WorkflowViewState.IdRef="If_52">
+                        <If.Then>
+                          <Throw DisplayName="Throw Exception so that build will stop" Exception="[New Exception(&quot;SSL Certificate &quot;&quot;&quot; + winCertificate + &quot;&quot;&quot; does not exist. Kindly check the path again!&quot;)]" sap2010:WorkflowViewState.IdRef="Throw_32" />
+                        </If.Then>
+                        <If.Else>
+                          <Assign DisplayName="VM inputs provided" sap2010:WorkflowViewState.IdRef="Assign_44">
+                            <Assign.To>
+                              <OutArgument x:TypeArguments="x:Boolean">[vmInputsProvided]</OutArgument>
+                            </Assign.To>
+                            <Assign.Value>
+                              <InArgument x:TypeArguments="x:Boolean">True</InArgument>
+                            </Assign.Value>
+                          </Assign>
+                        </If.Else>
+                      </If>
+                    </If.Else>
+                  </If>
+                </If.Else>
+              </If>
+            </Sequence>
+            <Sequence DisplayName="Linux VM" sap2010:WorkflowViewState.IdRef="Sequence_38">
+              <Assign DisplayName="Get Linux UserName" sap2010:WorkflowViewState.IdRef="Assign_45">
+                <Assign.To>
+                  <OutArgument x:TypeArguments="x:String">[linuxUserName]</OutArgument>
+                </Assign.To>
+                <Assign.Value>
+                  <InArgument x:TypeArguments="x:String">[LinuxVM.GetValue(Of String)("UserName")]</InArgument>
+                </Assign.Value>
+              </Assign>
+              <Assign DisplayName="Get Linux SSH Key" sap2010:WorkflowViewState.IdRef="Assign_46">
+                <Assign.To>
+                  <OutArgument x:TypeArguments="x:String">[linuxSSHKey]</OutArgument>
+                </Assign.To>
+                <Assign.Value>
+                  <InArgument x:TypeArguments="x:String">[LinuxVM.GetValue(Of String)("SSHKeyFile")]</InArgument>
+                </Assign.Value>
+              </Assign>
+              <Assign DisplayName="Get Linux Application Path" sap2010:WorkflowViewState.IdRef="Assign_47">
+                <Assign.To>
+                  <OutArgument x:TypeArguments="x:String">[linuxAppPath]</OutArgument>
+                </Assign.To>
+                <Assign.Value>
+                  <InArgument x:TypeArguments="x:String">[LinuxVM.GetValue(Of String)("ApplicationPath")]</InArgument>
+                </Assign.Value>
+              </Assign>
+              <If Condition="[String.IsNullOrEmpty(linuxUserName) And String.IsNullOrEmpty(linuxSSHKey) And String.IsNullOrEmpty(linuxAppPath)]" DisplayName="Validate Linux VM inputs" sap2010:WorkflowViewState.IdRef="If_56">
+                <If.Then>
+                  <mtbwa:WriteBuildMessage DisplayName="Continuous Deployment False" sap2010:WorkflowViewState.IdRef="WriteBuildMessage_36" Importance="[Microsoft.TeamFoundation.Build.Client.BuildMessageImportance.High]" Message="Linux VM inputs are not provided. Hence deployment will not happen to any Linux VMs in the Cloud Service, if present" mva:VisualBasic.Settings="Assembly references and imported namespaces serialized as XML namespaces" />
+                </If.Then>
+                <If.Else>
+                  <If Condition="[String.IsNullOrEmpty(linuxUserName) Or String.IsNullOrEmpty(linuxSSHKey) Or String.IsNullOrEmpty(linuxAppPath)]" DisplayName="Linux VM - Are all details provided?" sap2010:WorkflowViewState.IdRef="If_55">
+                    <If.Then>
+                      <Throw DisplayName="Throw Exception so that build will stop" Exception="[New Exception(&quot;Linux VM inputs are not completely provided!&quot;)]" sap2010:WorkflowViewState.IdRef="Throw_33" />
+                    </If.Then>
+                    <If.Else>
+                      <If Condition="[Not System.IO.File.Exists(linuxSSHKey)]" DisplayName="Does SSH Key file exist?" sap2010:WorkflowViewState.IdRef="If_58">
+                        <If.Then>
+                          <Throw DisplayName="Throw Exception so that build will stop" Exception="[New Exception(&quot;SSH Key File &quot;&quot;&quot; + linuxSSHKey + &quot;&quot;&quot; does not exist. Kindly check the path again!&quot;)]" sap2010:WorkflowViewState.IdRef="Throw_35" />
+                        </If.Then>
+                        <If.Else>
+                          <Assign DisplayName="VM inputs provided" sap2010:WorkflowViewState.IdRef="Assign_50">
+                            <Assign.To>
+                              <OutArgument x:TypeArguments="x:Boolean">[vmInputsProvided]</OutArgument>
+                            </Assign.To>
+                            <Assign.Value>
+                              <InArgument x:TypeArguments="x:Boolean">True</InArgument>
+                            </Assign.Value>
+                          </Assign>
+                        </If.Else>
+                      </If>
+                    </If.Else>
+                  </If>
+                </If.Else>
+              </If>
+            </Sequence>
             <If Condition="[Not vmInputsProvided]" DisplayName="Are Windows VM and / or Linux VM inputs provided?" sap2010:WorkflowViewState.IdRef="If_47">
               <If.Then>
                 <Throw DisplayName="Throw Exception so that build will stop" Exception="[New Exception(&quot;Neither Windows VM nor Linux VM inputs are provided!&quot;)]" sap2010:WorkflowViewState.IdRef="Throw_26" />
@@ -612,12 +694,12 @@
         </TryCatch.Catches>
       </TryCatch>
     </mtbwa:AgentScope>
-    <sads:DebugSymbol.Symbol>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</sads:DebugSymbol.Symbol>
+    <sads:DebugSymbol.Symbol>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</sads:DebugSymbol.Symbol>
   </Sequence>
   <sap2010:WorkflowViewState.ViewStateManager>
     <sap2010:ViewStateManager>
-      <sap2010:ViewStateData Id="SetBuildNumber_1" sap:VirtualizedContainerService.HintSize="1062,22" />
-      <sap2010:ViewStateData Id="InitializeEnvironment_3" sap:VirtualizedContainerService.HintSize="1040,22" />
+      <sap2010:ViewStateData Id="SetBuildNumber_1" sap:VirtualizedContainerService.HintSize="1208,22" />
+      <sap2010:ViewStateData Id="InitializeEnvironment_3" sap:VirtualizedContainerService.HintSize="1186,22" />
       <sap2010:ViewStateData Id="Assign_10" sap:VirtualizedContainerService.HintSize="264,60" />
       <sap2010:ViewStateData Id="Assign_1" sap:VirtualizedContainerService.HintSize="264,60" />
       <sap2010:ViewStateData Id="GetLocalPath_1" sap:VirtualizedContainerService.HintSize="242,22" />
@@ -632,7 +714,7 @@
       <sap2010:ViewStateData Id="Assign_22" sap:VirtualizedContainerService.HintSize="264,60" />
       <sap2010:ViewStateData Id="GetBuildDetail_1" sap:VirtualizedContainerService.HintSize="264,22" />
       <sap2010:ViewStateData Id="Assign_28" sap:VirtualizedContainerService.HintSize="264,60" />
-      <sap2010:ViewStateData Id="Sequence_2" sap:VirtualizedContainerService.HintSize="1040,832">
+      <sap2010:ViewStateData Id="Sequence_2" sap:VirtualizedContainerService.HintSize="1186,832">
         <sap:WorkflowViewStateService.ViewState>
           <scg:Dictionary x:TypeArguments="x:String, x:Object">
             <x:Boolean x:Key="IsExpanded">True</x:Boolean>
@@ -731,7 +813,7 @@
         </sap:WorkflowViewStateService.ViewState>
       </sap2010:ViewStateData>
       <sap2010:ViewStateData Id="TryCatch_5" sap:VirtualizedContainerService.HintSize="1018,960" />
-      <sap2010:ViewStateData Id="Sequence_4" sap:VirtualizedContainerService.HintSize="1040,3742">
+      <sap2010:ViewStateData Id="Sequence_4" sap:VirtualizedContainerService.HintSize="1186,3742">
         <sap:WorkflowViewStateService.ViewState>
           <scg:Dictionary x:TypeArguments="x:String, x:Object">
             <x:Boolean x:Key="IsExpanded">True</x:Boolean>
@@ -742,7 +824,7 @@
       <sap2010:ViewStateData Id="Throw_29" sap:VirtualizedContainerService.HintSize="200,22" />
       <sap2010:ViewStateData Id="If_50" sap:VirtualizedContainerService.HintSize="711,208" />
       <sap2010:ViewStateData Id="Throw_27" sap:VirtualizedContainerService.HintSize="200,22" />
-      <sap2010:ViewStateData Id="If_49" sap:VirtualizedContainerService.HintSize="711,208" />
+      <sap2010:ViewStateData Id="If_49" sap:VirtualizedContainerService.HintSize="939,208" />
       <sap2010:ViewStateData Id="Throw_14" sap:VirtualizedContainerService.HintSize="200,22" />
       <sap2010:ViewStateData Id="GetEnvironmentVariable`1_5" sap:VirtualizedContainerService.HintSize="464,22" />
       <sap2010:ViewStateData Id="Throw_25" sap:VirtualizedContainerService.HintSize="200,22" />
@@ -754,31 +836,56 @@
           </scg:Dictionary>
         </sap:WorkflowViewStateService.ViewState>
       </sap2010:ViewStateData>
-      <sap2010:ViewStateData Id="If_33" sap:VirtualizedContainerService.HintSize="711,542" />
+      <sap2010:ViewStateData Id="If_33" sap:VirtualizedContainerService.HintSize="939,542" />
       <sap2010:ViewStateData Id="Throw_17" sap:VirtualizedContainerService.HintSize="200,22" />
-      <sap2010:ViewStateData Id="If_35" sap:VirtualizedContainerService.HintSize="711,208" />
-      <sap2010:ViewStateData Id="WriteBuildMessage_26" sap:VirtualizedContainerService.HintSize="200,22" />
-      <sap2010:ViewStateData Id="Throw_20" sap:VirtualizedContainerService.HintSize="200,22" />
-      <sap2010:ViewStateData Id="Assign_33" sap:VirtualizedContainerService.HintSize="242,60" />
-      <sap2010:ViewStateData Id="If_38" sap:VirtualizedContainerService.HintSize="467,208" />
-      <sap2010:ViewStateData Id="If_39" sap:VirtualizedContainerService.HintSize="711,356" />
-      <sap2010:ViewStateData Id="WriteBuildMessage_27" sap:VirtualizedContainerService.HintSize="200,22" />
-      <sap2010:ViewStateData Id="Throw_21" sap:VirtualizedContainerService.HintSize="200,22" />
-      <sap2010:ViewStateData Id="Assign_34" sap:VirtualizedContainerService.HintSize="242,60" />
-      <sap2010:ViewStateData Id="If_40" sap:VirtualizedContainerService.HintSize="467,208" />
-      <sap2010:ViewStateData Id="If_41" sap:VirtualizedContainerService.HintSize="711,356" />
-      <sap2010:ViewStateData Id="Throw_26" sap:VirtualizedContainerService.HintSize="200,22" />
-      <sap2010:ViewStateData Id="If_47" sap:VirtualizedContainerService.HintSize="711,208" />
-      <sap2010:ViewStateData Id="Sequence_23" sap:VirtualizedContainerService.HintSize="733,2450">
+      <sap2010:ViewStateData Id="If_35" sap:VirtualizedContainerService.HintSize="939,208" />
+      <sap2010:ViewStateData Id="Assign_40" sap:VirtualizedContainerService.HintSize="917,60" />
+      <sap2010:ViewStateData Id="Assign_41" sap:VirtualizedContainerService.HintSize="917,60" />
+      <sap2010:ViewStateData Id="Assign_42" sap:VirtualizedContainerService.HintSize="917,60" />
+      <sap2010:ViewStateData Id="Assign_43" sap:VirtualizedContainerService.HintSize="917,60" />
+      <sap2010:ViewStateData Id="WriteBuildMessage_35" sap:VirtualizedContainerService.HintSize="200,22" />
+      <sap2010:ViewStateData Id="Throw_31" sap:VirtualizedContainerService.HintSize="200,22" />
+      <sap2010:ViewStateData Id="Throw_32" sap:VirtualizedContainerService.HintSize="200,22" />
+      <sap2010:ViewStateData Id="Assign_44" sap:VirtualizedContainerService.HintSize="242,60" />
+      <sap2010:ViewStateData Id="If_52" sap:VirtualizedContainerService.HintSize="467,208" />
+      <sap2010:ViewStateData Id="If_53" sap:VirtualizedContainerService.HintSize="692,356" />
+      <sap2010:ViewStateData Id="If_54" sap:VirtualizedContainerService.HintSize="917,504" />
+      <sap2010:ViewStateData Id="Sequence_37" sap:VirtualizedContainerService.HintSize="939,1028">
         <sap:WorkflowViewStateService.ViewState>
           <scg:Dictionary x:TypeArguments="x:String, x:Object">
             <x:Boolean x:Key="IsExpanded">True</x:Boolean>
           </scg:Dictionary>
         </sap:WorkflowViewStateService.ViewState>
       </sap2010:ViewStateData>
-      <sap2010:ViewStateData Id="If_34" sap:VirtualizedContainerService.HintSize="1040,2598" />
-      <sap2010:ViewStateData Id="GitPull_1" sap:VirtualizedContainerService.HintSize="1040,22" />
-      <sap2010:ViewStateData Id="AssociateChanges_1" sap:VirtualizedContainerService.HintSize="1040,22" />
+      <sap2010:ViewStateData Id="Assign_45" sap:VirtualizedContainerService.HintSize="917,60" />
+      <sap2010:ViewStateData Id="Assign_46" sap:VirtualizedContainerService.HintSize="917,60" />
+      <sap2010:ViewStateData Id="Assign_47" sap:VirtualizedContainerService.HintSize="917,60" />
+      <sap2010:ViewStateData Id="WriteBuildMessage_36" sap:VirtualizedContainerService.HintSize="200,22" />
+      <sap2010:ViewStateData Id="Throw_33" sap:VirtualizedContainerService.HintSize="200,22" />
+      <sap2010:ViewStateData Id="Throw_35" sap:VirtualizedContainerService.HintSize="200,22" />
+      <sap2010:ViewStateData Id="Assign_50" sap:VirtualizedContainerService.HintSize="242,60" />
+      <sap2010:ViewStateData Id="If_58" sap:VirtualizedContainerService.HintSize="467,208" />
+      <sap2010:ViewStateData Id="If_55" sap:VirtualizedContainerService.HintSize="692,356" />
+      <sap2010:ViewStateData Id="If_56" sap:VirtualizedContainerService.HintSize="917,504" />
+      <sap2010:ViewStateData Id="Sequence_38" sap:VirtualizedContainerService.HintSize="939,928">
+        <sap:WorkflowViewStateService.ViewState>
+          <scg:Dictionary x:TypeArguments="x:String, x:Object">
+            <x:Boolean x:Key="IsExpanded">True</x:Boolean>
+          </scg:Dictionary>
+        </sap:WorkflowViewStateService.ViewState>
+      </sap2010:ViewStateData>
+      <sap2010:ViewStateData Id="Throw_26" sap:VirtualizedContainerService.HintSize="200,22" />
+      <sap2010:ViewStateData Id="If_47" sap:VirtualizedContainerService.HintSize="939,208" />
+      <sap2010:ViewStateData Id="Sequence_23" sap:VirtualizedContainerService.HintSize="961,3694">
+        <sap:WorkflowViewStateService.ViewState>
+          <scg:Dictionary x:TypeArguments="x:String, x:Object">
+            <x:Boolean x:Key="IsExpanded">True</x:Boolean>
+          </scg:Dictionary>
+        </sap:WorkflowViewStateService.ViewState>
+      </sap2010:ViewStateData>
+      <sap2010:ViewStateData Id="If_34" sap:VirtualizedContainerService.HintSize="1186,3842" />
+      <sap2010:ViewStateData Id="GitPull_1" sap:VirtualizedContainerService.HintSize="1186,22" />
+      <sap2010:ViewStateData Id="AssociateChanges_1" sap:VirtualizedContainerService.HintSize="1186,22" />
       <sap2010:ViewStateData Id="Assign_24" sap:VirtualizedContainerService.HintSize="287,60" />
       <sap2010:ViewStateData Id="Assign_25" sap:VirtualizedContainerService.HintSize="242,60" />
       <sap2010:ViewStateData Id="ForEach`1_3" sap:VirtualizedContainerService.HintSize="287,208" />
@@ -819,7 +926,7 @@
           </scg:Dictionary>
         </sap:WorkflowViewStateService.ViewState>
       </sap2010:ViewStateData>
-      <sap2010:ViewStateData Id="TryCatch_1" sap:VirtualizedContainerService.HintSize="1040,1551" />
+      <sap2010:ViewStateData Id="TryCatch_1" sap:VirtualizedContainerService.HintSize="1186,1551" />
       <sap2010:ViewStateData Id="Assign_37" sap:VirtualizedContainerService.HintSize="242,60" />
       <sap2010:ViewStateData Id="WriteBuildMessage_31" sap:VirtualizedContainerService.HintSize="242,22" />
       <sap2010:ViewStateData Id="WriteBuildError_9" sap:VirtualizedContainerService.HintSize="200,22" />
@@ -905,16 +1012,16 @@
           </scg:Dictionary>
         </sap:WorkflowViewStateService.ViewState>
       </sap2010:ViewStateData>
-      <sap2010:ViewStateData Id="TryCatch_6" sap:VirtualizedContainerService.HintSize="1040,3213" />
-      <sap2010:ViewStateData Id="AgentScope_1" sap:VirtualizedContainerService.HintSize="1062,12406" />
-      <sap2010:ViewStateData Id="Sequence_6" sap:VirtualizedContainerService.HintSize="1084,12592">
+      <sap2010:ViewStateData Id="TryCatch_6" sap:VirtualizedContainerService.HintSize="1186,3213" />
+      <sap2010:ViewStateData Id="AgentScope_1" sap:VirtualizedContainerService.HintSize="1208,13650" />
+      <sap2010:ViewStateData Id="Sequence_6" sap:VirtualizedContainerService.HintSize="1230,13836">
         <sap:WorkflowViewStateService.ViewState>
           <scg:Dictionary x:TypeArguments="x:String, x:Object">
             <x:Boolean x:Key="IsExpanded">True</x:Boolean>
           </scg:Dictionary>
         </sap:WorkflowViewStateService.ViewState>
       </sap2010:ViewStateData>
-      <sap2010:ViewStateData Id="TfsBuild.Process_1" sap:VirtualizedContainerService.HintSize="1124,12672">
+      <sap2010:ViewStateData Id="TfsBuild.Process_1" sap:VirtualizedContainerService.HintSize="1270,13916">
         <sap:WorkflowViewStateService.ViewState>
           <scg:Dictionary x:TypeArguments="x:String, x:Object">
             <x:Boolean x:Key="ShouldExpandAll">True</x:Boolean>
