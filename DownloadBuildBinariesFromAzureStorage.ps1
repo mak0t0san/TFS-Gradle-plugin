@@ -1,17 +1,15 @@
 <#
 .SYNOPSIS
-    Copies Build binaries from Azure Storage Container to a local folder.
+    Downloads Build binaries from Azure Storage Container to a local folder.
 
 .DESCRIPTION
-    Copies blobs from a single storage container to a local directory.  If the blobs 
-    have "/" in the name to represent a directory hierarchy, then the script will 
-    recreate that directory hierarchy under the local destination path specified.
+    Downloads Build binaries blobs from a single storage container to a local folder.  
 
 .EXAMPLE
     .\DownloadBuildBinariesFromAzureStorage `
         -StorageAccountName <myStorageAccountName> -StorageAccountKey <myStorageAccountKey> `
         -ContainerName <myContainerName> -Destination "<myLocalPath>" `
-        -BlobNamePrefix <blobNamePrefix>
+        -BlobNamePrefix "<blobNamePrefix>"
 #>
 
 param (
