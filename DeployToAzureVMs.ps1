@@ -4,26 +4,23 @@
     Binaries to the VMs by downloading from Azure Storage.
 
 .DESCRIPTION
-    Using the Cloud Service Name provided, the details of all the VMs hosted is derived.
-    Then, corresponding scripts for Windows and Linux VMs are executed, which will
-    download the Build Binaries from Azure Storage to the local folders of the VMs.
+    Using the Cloud Service Name provided, the details of all the VMs hosted in it is
+	obtained. Then, corresponding scripts for Windows and Linux VMs are executed, which
+    will download the Build Binaries from Azure Storage to the local folders of the VMs.
 
     The Windows parameters and Linux parameters are optional. But either Windows / Linux
-    parameters have to be provided. When the Cloud Service has both Windows and Linux
-    parameters, then both should be provided.
+    set of parameters have to be provided. When the Cloud Service has both Windows and 
+    Linux parameters, then both sets should be provided.
     
-    All the Windows parameters have to be provided for Windows VMs
-    All the Linux parameters have to be provided for Linux VMs
-
 .EXAMPLE
-    .\DeployomentToVMs `
+    .\DeployToAzureVMs `
         -SubscriptionId "<myAzureSubscriptionId>" -AzureManagementCertificate "<managementCertificatePath>" `
         -CloudServiceName <myCloudServiceName> `
         -StorageAccountName <myStorageAccountName> -StorageAccountKey <myStorageAccountKey> `
         -ContainerName <myContainerName> -BlobNamePrefix "<blobNamePrefix>" `
-        -WinUserName <winUserName> -WinPassword <winPassword> `
-        -WinCertificate "<winCertificatePath>" -WinAppPath "<winAppPath>" `
-        -LinuxUserName <linuxUserName> -LinuxSSHKey "<linuxSSHKey>" -LinuxAppPath "<linuxAppPath>"
+        -VMUserName <vmUserName> `
+		-WinPassword <winPassword> -WinCertificate "<winCertificatePath>" -WinAppPath "<winAppPath>" `
+        -LinuxSSHKey "<linuxSSHKey>" -LinuxAppPath "<linuxAppPath>"
 #>
 param (
     # The Azure Subscription ID
@@ -54,9 +51,9 @@ param (
     [Parameter(Mandatory = $true)]
     $BlobNamePrefix,
 
-    # The Windows VM User Name
-    [Parameter(Mandatory = $false)]
-    $WinUserName,
+    # The VM User Name for both Linux and Windows
+    [Parameter(Mandatory = $true)]
+    $VMUserName,
 
     # The Windows VM Password
     [Parameter(Mandatory = $false)]
@@ -69,10 +66,6 @@ param (
     # The Windows VM folder to which the Build Binaries will be deployed
     [Parameter(Mandatory = $false)]
     $WinAppPath,
-
-    # The Linux VM User Name
-    [Parameter(Mandatory = $false)]
-    $LinuxUserName,
 
     # The SSH Key file to connect to Linux VM over SSH protocol
     [Parameter(Mandatory = $false)]
@@ -96,17 +89,12 @@ $store.Close()
 
 # Use the Get Cloud Service Properties Service Management REST API to get the details of all the
 # VMs hosted in the Cloud Service
-
 $reqHeaderDict = @{}
 $reqHeaderDict.Add('x-ms-version','2012-03-01') # API version
 $restURI = "https://management.core.windows.net/" + $SubscriptionId + "/services/hostedservices/" + $CloudServiceName + "?embed-detail=true"
 
 [xml]$cloudPropXML = Invoke-RestMethod -Uri $restURI -CertificateThumbprint $mgmtCertThumbprint -Headers $reqHeaderDict 
 
+# TEMP CODE
 Write-Host $cloudPropXML.HostedService.ServiceName
 
-<#.\DownloadBuildBinariesFromAzureStorage.ps1 `
-    -StorageAccountName $StorageAccountName -StorageAccountKey $StorageAccountKey `
-    -ContainerName $ContainerName -Destination $WinAppPath `
-    -BlobNamePrefix $BlobNamePrefix
-#>
