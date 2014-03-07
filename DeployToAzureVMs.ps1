@@ -76,7 +76,6 @@ param (
     $LinuxAppPath
 )
 
-$WinPassword >> 'logFile.txt'
 
 # Import the Certificate to the Local Machine Trusted Store
 function ImportCertificate($certToImport)
@@ -93,91 +92,160 @@ function ImportCertificate($certToImport)
 }
 
 
-
-# Import the Azure Management Certificate
-$certToImport = New-Object System.Security.Cryptography.X509Certificates.X509Certificate2 $AzureManagementCertificate
-# ImportCertificate $certToImport
-
-
-$mgmtCertThumbprint = $certToImport.Thumbprint
-$cloudServieDNS = $CloudServiceName + ".cloudapp.net"
-
-
-# Use the 'Get Cloud Service Properties' Service Management REST API to get the details of 
-# all the VMs hosted in the Cloud Service
-$reqHeaderDict = @{}
-$reqHeaderDict.Add('x-ms-version','2012-03-01') # API version
-$restURI = "https://management.core.windows.net/" + $SubscriptionId + "/services/hostedservices/" + $CloudServiceName + "?embed-detail=true"
-[xml]$cloudProperties = Invoke-RestMethod -Uri $restURI -CertificateThumbprint $mgmtCertThumbprint -Headers $reqHeaderDict 
-
-
-# Iterate through the Cloud Properties and get the details of each VM.
-# Depending on the OS (Windows or Linux), execute corresponding download scripts.
-$cloudProperties.HostedService.Deployments.Deployment.RoleList.Role | foreach {
+# Extract the error details from the $error object
+function logError ($errorObj)
+{
+        $errorMsg = $errorObj.InvocationInfo.InvocationName.ToString() + "  :  " + $errorObj.ToString() + "`n" `
+                        + $errorObj.InvocationInfo.PositionMessage.ToString() + "`n" `
+                        + "CategoryInfo  :  " + $errorObj.CategoryInfo.ToString() + "`n" `
+                        + "FullyQualifiedErrorId  :  " + $errorObj.FullyQualifiedErrorId.ToString()
     
-    $OS = $_.OSVirtualHardDisk.OS
+        return $errorMsg
+}
 
-    if ($OS -ieq "Windows")
-    {
 
-        $publicWinRMPort = "0"
+Try
+{
+    # Reset the error variable
+    $error.clear()
 
-        $_.ConfigurationSets.ConfigurationSet.InputEndpoints.InputEndpoint | foreach {
-            if ($_.LocalPort -eq "5986")
-            {
-                $publicWinRMPort = $_.Port                
-            }
-        }
+    $logFile = ($MyInvocation.MyCommand.Definition).Replace($MyInvocation.MyCommand.Name, "") + 'DeploymentScripts.log'
+    $logFileContent =  "================================================================================================================================`n" `
+                     + "                                 DEPLOYMENT SCRIPT EXECUTION FOR BUILD - `"" + $BlobNamePrefix + "`"                                        `n" `
+                     + "================================================================================================================================`n"
 
-        Write-Host "validating port...."
+    $WindowsOS = "Windows"
+    $LinuxOS = "Linux"
+    $DefaultHTTPSWinRMPort = "5986"
+    $DefaultSSHPort = "22"
+    $WindowsDownloadScript = "DownloadBuildBinariesFromAzureStorage.ps1"
+    $LinuxDownloadScript = "DownloadBuildBinariesFromAzureStorage.sh"
 
-        if ($publicWinRMPort -eq "0")
+    $cloudServieDNS = $CloudServiceName + ".cloudapp.net"
+
+
+    # Import the Azure Management Certificate
+    $logFileContent = $logFileContent + "Importing the Azure Management Certificate...... `n"
+    $certToImport = New-Object System.Security.Cryptography.X509Certificates.X509Certificate2 $AzureManagementCertificate
+    # ImportCertificate $certToImport
+    $logFileContent = $logFileContent + "......Imported the Azure Management Certificate `n"
+
+    $mgmtCertThumbprint = $certToImport.Thumbprint
+
+
+    # Use the 'Get Cloud Service Properties' Service Management REST API to get the details of 
+    # all the VMs hosted in the Cloud Service
+    $logFileContent = $logFileContent + "Get Cloud Service Properties `n"
+    $reqHeaderDict = @{}
+    $reqHeaderDict.Add('x-ms-version','2012-03-01') # API version
+    $restURI = "https://management.core.windows.net/" + $SubscriptionId + "/services/hostedservices/" + $CloudServiceName + "?embed-detail=true"
+    [xml]$cloudProperties = Invoke-RestMethod -Uri $restURI -CertificateThumbprint $mgmtCertThumbprint -Headers $reqHeaderDict 
+
+
+    # Iterate through the Cloud Properties and get the details of each VM.
+    # Depending on the OS (Windows or Linux), execute corresponding download scripts.
+    $logFileContent = $logFileContent + "Iterate through the Cloud Service Properties `n"
+    $cloudProperties.HostedService.Deployments.Deployment.RoleList.Role | foreach {
+    
+        $OS = $_.OSVirtualHardDisk.OS
+        
+        if ($OS -ieq $WindowsOS)
         {
-            # TODO: THROW ERROR - WinRM HTTPS Public Port not defined
-        }
-        else
-        {
-            Write-Host "validating port....done"
+            $logFileContent = $logFileContent `
+                                    + "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ DEPLOYING TO " `
+                                    + $WindowsOS + " VM : " + $_.RoleName `
+                                    + " ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ `n"
 
-            # Import the VM Certificate
+            # Import the Cloud Service Certificate
+            $logFileContent = $logFileContent + "Importing the Cloud Service Certificate...... `n"
             $certToImport = New-Object System.Security.Cryptography.X509Certificates.X509Certificate2 $WinCertificate
             # ImportCertificate $certToImport
+            $logFileContent = $logFileContent + "......Imported the Cloud Service Certificate `n"
 
-            Write-Host "Triggering download script...."
-            $securePassword = ConvertTo-SecureString $WinPassword
-            $credential = New-Object -typename System.Management.Automation.PSCredential -argumentlist $VMUserName, $securePassword
-            $sessionOption = New-PSSessionOption -SkipCACheck
-            Invoke-Command -ComputerName $cloudServieDNS -InDisconnectedSession `
-                -Credential $credential -UseSSL -SessionOption $sessionOption `
-                -FilePath DownloadBuildBinariesFromAzureStorage.ps1 `
-                -ArgumentList $StorageAccountName, $StorageAccountKey, $StorageContainerName, $WinAppPath, $BlobNamePrefix
-        }
-    }
-    elseif ($OS -ieq "Linux")
-    {
-        Write-Host $OS
+            $publicWinRMPort = "0"
 
-        $publicSSHPort = 0
+            $_.ConfigurationSets.ConfigurationSet.InputEndpoints.InputEndpoint | foreach {
+                if ($_.LocalPort -eq $DefaultHTTPSWinRMPort)
+                {
+                    $publicWinRMPort = $_.Port                
+                }
+            }
 
-        $_.Role.ConfigurationSets.ConfigurationSet.InputEndpoints | ForEach-Object {
-            if ($_.InputEndpoint.LocalPort -eq 22)
+            if ($publicWinRMPort -eq "0")
             {
-                $publicSSHPort = $_.InputEndpoint.Port
-                break
+                throw "ERROR: WinRM HTTPS Endpoint (Private port " `
+                        + $DefaultHTTPSWinRMPort + ") not found for " `
+                        + $WindowsOS + " VM : " + $_.RoleName 
+            }
+            else
+            {
+                $logFileContent = $logFileContent + "Remotely triggering the download script on the VM `n"
+                $securePassword = ConvertTo-SecureString $WinPassword
+                $credential = New-Object -typename System.Management.Automation.PSCredential -argumentlist $VMUserName, $securePassword
+            
+                # Use the Skip CA Check option to avoid command failure, in case the certificate is not trusted
+                $sessionOption = New-PSSessionOption -SkipCACheck
+            <#
+                Invoke-Command -ComputerName $cloudServieDNS -Credential $credential `
+                    -InDisconnectedSession -SessionOption $sessionOption `
+                    -UseSSL -Port $publicWinRMPort `
+                    -FilePath $WindowsDownloadScript `
+                    -ArgumentList $StorageAccountName, $StorageAccountKey, $StorageContainerName, $WinAppPath, $BlobNamePrefix
+                    #>
+                $logFileContent = $logFileContent `
+                        + "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ DEPLOYED TO " `
+                        + $WindowsOS + " VM : " + $_.RoleName `
+                        + " ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ `n"
             }
         }
-
-        if ($publicSSHPort -eq 0)
+        elseif ($OS -ieq $LinuxOS)
         {
-            # TODO: THROW ERROR - SSH Public Port not defined
+            $logFileContent = $logFileContent `
+                                    + "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ DEPLOYING TO " `
+                                    + $LinuxOS + " VM : " + $_.RoleName `
+                                    + " ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ `n"
+
+            $publicSSHPort = 0
+
+            $_.Role.ConfigurationSets.ConfigurationSet.InputEndpoints | ForEach-Object {
+                if ($_.InputEndpoint.LocalPort -eq $DefaultSSHPort)
+                {
+                    $publicSSHPort = $_.InputEndpoint.Port
+                    break
+                }
+            }
+
+            if ($publicSSHPort -eq 0)
+            {
+                throw "ERROR: SSH Endpoint (Private port " `
+                        + $DefaultSSHPort + ") not found for " `
+                        + $LinuxOS + " VM : " + $_.RoleName 
+            }
+            else
+            {
+                $logFileContent = $logFileContent + "Remotely triggering the download script on the VM `n"
+
+                # TODO: trigger download script via ssh
+
+                $logFileContent = $logFileContent `
+                        + "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ DEPLOYED TO " `
+                        + $LinuxOS + " VM : " + $_.RoleName `
+                        + " ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ `n"
+            }
         }
         else
         {
-            
+            throw "ERROR: " + $OS + " OS not supported!"
         }
     }
-    else
-    {
-        # TODO: THROW ERROR - OS not supported
-    }
+}
+Catch
+{
+    $excpMsg = logError $_
+    $logFileContent = $logFileContent + "`n" + $excpMsg + "`n"
+}
+Finally
+{
+    # Log the details to log file
+    $logFileContent >> $logFile
 }
