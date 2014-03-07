@@ -185,13 +185,13 @@ Try
             
                 # Use the Skip CA Check option to avoid command failure, in case the certificate is not trusted
                 $sessionOption = New-PSSessionOption -SkipCACheck
-            <#
+            
                 Invoke-Command -ComputerName $cloudServieDNS -Credential $credential `
                     -InDisconnectedSession -SessionOption $sessionOption `
                     -UseSSL -Port $publicWinRMPort `
                     -FilePath $WindowsDownloadScript `
                     -ArgumentList $StorageAccountName, $StorageAccountKey, $StorageContainerName, $WinAppPath, $BlobNamePrefix
-                    #>
+                    
                 $logFileContent = $logFileContent `
                         + "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ DEPLOYED TO " `
                         + $WindowsOS + " VM : " + $_.RoleName `
