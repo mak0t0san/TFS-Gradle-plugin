@@ -84,11 +84,6 @@ function ImportCertificate($certToImport)
     $store.Open([System.Security.Cryptography.X509Certificates.OpenFlags]::ReadWrite)
     $store.Add($CertToImport)
     $store.Close()
-
-    <#
-    $certCmd = 'CERTUTIL -addstore -enterprise -f -v root "' + $AzureManagementCertificate + '"'
-    Invoke-Command -ScriptBlock {CERTUTIL -addstore -enterprise -f -v root "$AzureManagementCertificate"}
-    #>
 }
 
 
@@ -122,7 +117,10 @@ Try
     $LinuxDownloadScript = "DownloadBuildBinariesFromAzureStorage.sh"
 
     $cloudServieDNS = $CloudServiceName + ".cloudapp.net"
-
+    
+    $sshHost = $VMUserName + "@" + $cloudServieDNS
+    $blobNamePrefixEscaped = '\"' + $BlobNamePrefix + '\" ' # Add a space at the end so that it forms as a delimiter between arguments to the Linux Download script
+    $linuxAppPathEscaped = '\"' + $LinuxAppPath + '\"'
 
     # Import the Azure Management Certificate
     $logFileContent = $logFileContent + "Importing the Azure Management Certificate...... `n"
@@ -207,11 +205,10 @@ Try
 
             $publicSSHPort = 0
 
-            $_.Role.ConfigurationSets.ConfigurationSet.InputEndpoints | ForEach-Object {
-                if ($_.InputEndpoint.LocalPort -eq $DefaultSSHPort)
+            $_.ConfigurationSets.ConfigurationSet.InputEndpoints.InputEndpoint | ForEach-Object {
+                if ($_.LocalPort -eq $DefaultSSHPort)
                 {
-                    $publicSSHPort = $_.InputEndpoint.Port
-                    break
+                    $publicSSHPort = $_.Port
                 }
             }
 
@@ -225,7 +222,9 @@ Try
             {
                 $logFileContent = $logFileContent + "Remotely triggering the download script on the VM `n"
 
-                # TODO: trigger download script via ssh
+                # TODO: Trigger in background / asynchronous mode
+                cmd /c ssh -i $LinuxSSHKey -o StrictHostKeyChecking=no -p $publicSSHPort $sshHost bash -s `< $LinuxDownloadScript $StorageAccountName $StorageAccountKey $StorageContainerName $blobNamePrefixEscaped $linuxAppPathEscaped
+
 
                 $logFileContent = $logFileContent `
                         + "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ DEPLOYED TO " `
