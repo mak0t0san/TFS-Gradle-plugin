@@ -1,10 +1,10 @@
 #!/bin/bash
 
-# Redirect stdout ( > ) and stderr ( 2> ) to a log file under user's home direcotry
+# Redirect stdout ( > ) and stderr ( 2> ) to a log file under user's home directory
 # Redirect the stdout and stderr streams using "tee" and a named pipe ( >() )
 # Log file will be appended for subsequent runs
-exec > >(tee -a $HOME/$0.log)
-exec 2> >(tee -a $HOME/$0.log >&2)
+exec > >(tee -a $HOME/DownloadBuildBinariesFromAzureStorage.log)
+exec 2> >(tee -a $HOME/DownloadBuildBinariesFromAzureStorage.log >&2)
 
 
 # Validate the number of input arguments
@@ -21,10 +21,10 @@ blobNamePrefix=$4
 destination=$5
 
 
+
 echo "============================================================================================================================"
 echo "                          DOWNLOAD STATUS FOR BUILD - $blobNamePrefix"
 echo "============================================================================================================================"
-
 
 # Store the original IFS (Internal Field Separator)
 originalIFS=$IFS
@@ -40,7 +40,7 @@ blobNames=(`azure storage blob list --account-name $storageAccountName --account
 IFS=$originalIFS
 
 
-# Change the IFS to back quote (`) so that path names are split while executing awk by any other character
+# Change the IFS to back quote ( ` ) so that path names are split while executing awk by any other character
 # ` is not allowed in a filename and hence can be used
 IFS="\`"
 
