@@ -118,12 +118,20 @@ Try
 
     $cloudServieDNS = $CloudServiceName + ".cloudapp.net"
     
+    # Form the variables for Windows VMs
+    $securePassword = ConvertTo-SecureString $WinPassword
+    $credential = New-Object -typename System.Management.Automation.PSCredential -argumentlist $VMUserName, $securePassword            
+    # Use the Skip CA Check option to avoid command failure, in case the certificate is not trusted
+    $sessionOption = New-PSSessionOption -SkipCACheck
+
     # Form the variables for Linux VMs
     $sshHost = $VMUserName + "@" + $cloudServieDNS
     # In case there are spaces, then they should be escaped with backslash (\) for the Linux Shell script input arguments
     $blobNamePrefixEscaped = $BlobNamePrefix -replace ' ', '\ '
     $linuxAppPathEscaped = $LinuxAppPath -replace ' ', '\ '
 
+    
+    
     # Import the Azure Management Certificate
     $logFileContent = $logFileContent + "Importing the Azure Management Certificate...... `n"
     $certToImport = New-Object System.Security.Cryptography.X509Certificates.X509Certificate2 $AzureManagementCertificate
@@ -131,6 +139,7 @@ Try
     $logFileContent = $logFileContent + "......Imported the Azure Management Certificate `n"
 
     $mgmtCertThumbprint = $certToImport.Thumbprint
+
 
 
     # Use the 'Get Cloud Service Properties' Service Management REST API to get the details of 
@@ -142,6 +151,7 @@ Try
     [xml]$cloudProperties = Invoke-RestMethod -Uri $restURI -CertificateThumbprint $mgmtCertThumbprint -Headers $reqHeaderDict 
 
 
+   
     # Iterate through the Cloud Properties and get the details of each VM.
     # Depending on the OS (Windows or Linux), execute corresponding download scripts.
     $logFileContent = $logFileContent + "Iterate through the Cloud Service Properties `n"
@@ -180,20 +190,23 @@ Try
             else
             {
                 $logFileContent = $logFileContent + "Remotely triggering the download script on the VM `n"
-                $securePassword = ConvertTo-SecureString $WinPassword
-                $credential = New-Object -typename System.Management.Automation.PSCredential -argumentlist $VMUserName, $securePassword
-            
-                # Use the Skip CA Check option to avoid command failure, in case the certificate is not trusted
-                $sessionOption = New-PSSessionOption -SkipCACheck
             
                 Invoke-Command -ComputerName $cloudServieDNS -Credential $credential `
                     -InDisconnectedSession -SessionOption $sessionOption `
                     -UseSSL -Port $publicWinRMPort `
                     -FilePath $WindowsDownloadScript `
                     -ArgumentList $StorageAccountName, $StorageAccountKey, $StorageContainerName, $WinAppPath, $BlobNamePrefix
+                
+                if ($error.Count -gt 0)
+                {
+                    $logFileContent = $logFileContent + "ERROR OCCURRED: While remotely triggering the download script on the VM `n"
                     
+                    # Reset the error variable, so that subsequent cmdlet execution will not consider this error
+                    $error.Clear()
+                }
+
                 $logFileContent = $logFileContent `
-                        + "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ TRIGGERED TO " `
+                        + "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ TRIGGERED DEPLOYMENT TO " `
                         + $WindowsOS + " VM : " + $_.RoleName `
                         + " ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ `n"
             }
@@ -225,6 +238,14 @@ Try
                 $logFileContent = $logFileContent + "Remotely triggering the download script on the VM `n"
 
                 Start-Process cmd -ArgumentList "/c ssh -i '$LinuxSSHKey' -o StrictHostKeyChecking=no -p $publicSSHPort $sshHost bash -s < $LinuxDownloadScript $StorageAccountName $StorageAccountKey $StorageContainerName $blobNamePrefixEscaped $linuxAppPathEscaped" -NoNewWindow
+
+                if ($error.Count -gt 0)
+                {
+                    $logFileContent = $logFileContent + "ERROR OCCURRED: While remotely triggering the download script on the VM `n"
+                    
+                    # Reset the error variable, so that subsequent cmdlet execution will not consider this error
+                    $error.Clear()
+                }
 
                 $logFileContent = $logFileContent `
                         + "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ TRIGGERED DEPLOYMENT TO " `
