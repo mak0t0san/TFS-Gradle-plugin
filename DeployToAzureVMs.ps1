@@ -135,7 +135,7 @@ Try
     # Import the Azure Management Certificate
     $logFileContent = $logFileContent + "Importing the Azure Management Certificate...... `n"
     $certToImport = New-Object System.Security.Cryptography.X509Certificates.X509Certificate2 $AzureManagementCertificate
-    # ImportCertificate $certToImport
+    ImportCertificate $certToImport
     $logFileContent = $logFileContent + "......Imported the Azure Management Certificate `n"
 
     $mgmtCertThumbprint = $certToImport.Thumbprint
@@ -169,7 +169,7 @@ Try
             # Import the Cloud Service Certificate
             $logFileContent = $logFileContent + "Importing the Cloud Service Certificate...... `n"
             $certToImport = New-Object System.Security.Cryptography.X509Certificates.X509Certificate2 $WinCertificate
-            # ImportCertificate $certToImport
+            ImportCertificate $certToImport
             $logFileContent = $logFileContent + "......Imported the Cloud Service Certificate `n"
 
             $publicWinRMPort = "0"
