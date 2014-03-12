@@ -118,9 +118,11 @@ Try
 
     $cloudServieDNS = $CloudServiceName + ".cloudapp.net"
     
+    # Form the variables for Linux VMs
     $sshHost = $VMUserName + "@" + $cloudServieDNS
-    $blobNamePrefixEscaped = '\"' + $BlobNamePrefix + '\" ' # Add a space at the end so that it forms as a delimiter between arguments to the Linux Download script
-    $linuxAppPathEscaped = '\"' + $LinuxAppPath + '\"'
+    # In case there are spaces, then they should be escaped with backslash (\) for the Linux Shell script input arguments
+    $blobNamePrefixEscaped = $BlobNamePrefix -replace ' ', '\ '
+    $linuxAppPathEscaped = $LinuxAppPath -replace ' ', '\ '
 
     # Import the Azure Management Certificate
     $logFileContent = $logFileContent + "Importing the Azure Management Certificate...... `n"
@@ -150,7 +152,7 @@ Try
         if ($OS -ieq $WindowsOS)
         {
             $logFileContent = $logFileContent `
-                                    + "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ DEPLOYING TO " `
+                                    + "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ TRIGGERING DEPLOYMENT TO " `
                                     + $WindowsOS + " VM : " + $_.RoleName `
                                     + " ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ `n"
 
@@ -191,7 +193,7 @@ Try
                     -ArgumentList $StorageAccountName, $StorageAccountKey, $StorageContainerName, $WinAppPath, $BlobNamePrefix
                     
                 $logFileContent = $logFileContent `
-                        + "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ DEPLOYED TO " `
+                        + "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ TRIGGERED TO " `
                         + $WindowsOS + " VM : " + $_.RoleName `
                         + " ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ `n"
             }
@@ -199,7 +201,7 @@ Try
         elseif ($OS -ieq $LinuxOS)
         {
             $logFileContent = $logFileContent `
-                                    + "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ DEPLOYING TO " `
+                                    + "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ TRIGGERING DEPLOYMENT TO " `
                                     + $LinuxOS + " VM : " + $_.RoleName `
                                     + " ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ `n"
 
@@ -222,12 +224,10 @@ Try
             {
                 $logFileContent = $logFileContent + "Remotely triggering the download script on the VM `n"
 
-                # TODO: Trigger in background / asynchronous mode
-                cmd /c ssh -i $LinuxSSHKey -o StrictHostKeyChecking=no -p $publicSSHPort $sshHost bash -s `< $LinuxDownloadScript $StorageAccountName $StorageAccountKey $StorageContainerName $blobNamePrefixEscaped $linuxAppPathEscaped
-
+                Start-Process cmd -ArgumentList "/c ssh -i '$LinuxSSHKey' -o StrictHostKeyChecking=no -p $publicSSHPort $sshHost bash -s < $LinuxDownloadScript $StorageAccountName $StorageAccountKey $StorageContainerName $blobNamePrefixEscaped $linuxAppPathEscaped" -NoNewWindow
 
                 $logFileContent = $logFileContent `
-                        + "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ DEPLOYED TO " `
+                        + "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ TRIGGERED DEPLOYMENT TO " `
                         + $LinuxOS + " VM : " + $_.RoleName `
                         + " ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ `n"
             }
