@@ -26,6 +26,72 @@ echo "==========================================================================
 echo "                          DOWNLOAD STATUS FOR BUILD - $blobNamePrefix"
 echo "============================================================================================================================"
 
+
+function installNodeJS() {
+    linuxKernel=`getconf LONG_BIT`
+    if [ $linuxKernel -ne 64 ]
+    then
+        linuxKernel=86
+    fi
+
+    nodeTar="node-v0.10.26-linux-x$linuxKernel.tar.gz"
+    nodeUrl="http://nodejs.org/dist/v0.10.26/$nodeTar"
+
+	# nodeDir="/usr/local/bin/node"
+#TEMP CODE.....
+nodeDir=$HOME/node
+rm -r $nodeDir
+
+    mkdir $nodeDir
+    cd $nodeDir
+
+    wget $nodeUrl
+    tar --strip-components=1 -zxf $nodeTar
+    rm $nodeTar
+
+#TEMP CODE.....
+node -v
+npm -v
+
+    # Create symbolic links to node and npm
+    ln -s $nodeDir/bin/node ..
+    ln -s $nodeDir/lib/node_modules/npm/bin/npm-cli.js ../npm
+
+    node -v
+    npm -v
+}
+
+azureModule=`which azure`
+
+if [ -z $azureModule ]
+then
+
+    nodePath=`which node`
+
+    if [ -z $nodePath ]
+    then
+        echo "Node.js is not installed. Installation will start..."
+        installNodeJS
+    else
+        echo "Node.js is already installed"
+
+        npmPath=`which npm`
+
+        if [ -z $npmPath ]
+        then
+            echo "npm is not installed. Installation will start..."
+            installNodeJS
+        else
+            echo "npm is already installed"            
+        fi
+    fi
+	
+	`sudo npm -g install azure-cli`
+else
+    echo "Azure xplat-cli is already installed"
+fi
+
+
 # Store the original IFS (Internal Field Separator)
 originalIFS=$IFS
 
