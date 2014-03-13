@@ -27,7 +27,10 @@ echo "                          DOWNLOAD STATUS FOR BUILD - $blobNamePrefix"
 echo "============================================================================================================================"
 
 
+# This function will install Node.js and npm module
 function installNodeJS() {
+    # Find out if the Linux Kernel is 32-bit or 64-bit
+    # Accordingly, the Node.js tar should be downloaded from Nodejs.org
     linuxKernel=`getconf LONG_BIT`
     if [ $linuxKernel -ne 64 ]
     then
@@ -36,61 +39,99 @@ function installNodeJS() {
 
     nodeTar="node-v0.10.26-linux-x$linuxKernel.tar.gz"
     nodeUrl="http://nodejs.org/dist/v0.10.26/$nodeTar"
+  
+    usrDir="/usr/local/"
+    nodeDir=$HOME/nodeJS
 
-	# nodeDir="/usr/local/bin/node"
-#TEMP CODE.....
-nodeDir=$HOME/node
-rm -r $nodeDir
-
+    # Remove the directory if it already exists and create a new one
+    rm -rf $nodeDir
     mkdir $nodeDir
     cd $nodeDir
-
+    
     wget $nodeUrl
     tar --strip-components=1 -zxf $nodeTar
-    rm $nodeTar
+    
+    sudo cp bin/* $usrDir/bin
+    sudo cp -R lib/* $usrDir/lib
+    sudo cp -R share/* $usrDir/share
+    
+    # Remove the node directory in user's home directory after copying to /usr/local
+    rm -r $nodeDir
 
-#TEMP CODE.....
-node -v
-npm -v
+    cd $usrDir/bin
+    # Remove the copied file and create a symbolic link to npm
+    sudo rm -r npm
+    sudo ln -s ../lib/node_modules/npm/bin/npm-cli.js npm
 
-    # Create symbolic links to node and npm
-    ln -s $nodeDir/bin/node ..
-    ln -s $nodeDir/lib/node_modules/npm/bin/npm-cli.js ../npm
-
-    node -v
-    npm -v
+    echo "Node.js version: `node -v`"
+    echo "npm version: `npm -v`"
 }
 
-azureModule=`which azure`
 
-if [ -z $azureModule ]
-then
+# This function will install the npm module if Node.js is already installed
+function installNPM() {
+    # Download the install.sh to the user's home directory
+    wget -P $HOME  https://npmjs.org/install.sh
+    
+	# install.sh has a command which has input redirection from the terminal (/dev/tty). 
+	# This will not work when the script is executed remotely, since there is no terminal. 
+	# Replace it with /dev/null
+	sed -i "s/\/dev\/tty/\/dev\/null/g" $HOME/install.sh
+	
+    sudo sh $HOME/install.sh
+    
+    # Remove the install.sh and tmp directory generated, after installing npm
+    rm $HOME/install.sh
+	rm -r $HOME/tmp
+    
+    echo "npm version: `npm -v`"
+}
 
-    nodePath=`which node`
 
-    if [ -z $nodePath ]
+# This function checks if Azure xplat-cli is already installed.
+# If not, it will install it
+function installAzureXplatCli() {
+    
+    azureModule=`which azure`
+
+    if [ -z $azureModule ]
     then
-        echo "Node.js is not installed. Installation will start..."
-        installNodeJS
-    else
-        echo "Node.js is already installed"
-
-        npmPath=`which npm`
-
-        if [ -z $npmPath ]
+        nodePath=`which node`
+        echo "Azure xplat-cli is not installed. Installation will start..."
+        
+        # Check if Node.js is already installed. Else install it. This will also install 'npm' along with Node.js
+        # This is required for installing Azure xplat-cli
+        if [ -z $nodePath ]
         then
-            echo "npm is not installed. Installation will start..."
+            echo "Node.js is not installed. Installation will start..."
             installNodeJS
         else
-            echo "npm is already installed"            
-        fi
-    fi
-	
-	`sudo npm -g install azure-cli`
-else
-    echo "Azure xplat-cli is already installed"
-fi
+            echo "Node.js is already installed"
+        
+            npmPath=`which npm`
 
+            # If Node.js is installed, but npm is not installed, then install it.
+            # This is required for installing Azure xplat-cli
+            if [ -z $npmPath ]
+            then
+                echo "npm is not installed. Installation will start..."
+                installNPM
+            else
+                echo "npm is already installed"
+            fi
+        fi
+        
+        echo "Installing Azure xplat-cli..."
+        `sudo npm -g install azure-cli`
+    else
+        echo "Azure xplat-cli is already installed"
+    fi
+}
+
+
+# Install the Azure xplat-cli if it is not already installed. This is required to execute the 
+# Azure Storage download commands
+installAzureXplatCli
 
 # Store the original IFS (Internal Field Separator)
 originalIFS=$IFS
@@ -121,7 +162,7 @@ IFS=$originalIFS
 # Change directory to the destination directory
 if [ ! -z "$destinationPath" ]
 then
-	cd $destinationPath
+    cd $destinationPath
 fi
 
 # Download each blob into the destination path. This will replace any files / folders with the same name, 
