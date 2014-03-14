@@ -27,6 +27,68 @@ echo "                          DOWNLOAD STATUS FOR BUILD - $blobNamePrefix"
 echo "============================================================================================================================"
 
 
+# Global variables to be used across functions
+ubuntu="Ubuntu"
+centOS="CentOS"
+suse="SUSE"
+
+usrDir="/usr/local/"
+
+# This function checks if Azure xplat-cli is already installed.
+# If not, it will install it
+function installAzureXplatCli() {
+    
+    azureModule=`which azure`
+
+    if [ -z $azureModule ]
+    then
+        nodePath=`which node`
+        echo "Azure xplat-cli is not installed. Installation will start..."
+        
+        # Check if Node.js is already installed. Else install it. This will also install 'npm' along with Node.js
+        # This is required for installing Azure xplat-cli
+        if [ -z $nodePath ]
+        then
+            echo "Node.js is not installed. Installation will start..."
+			# Install wget if not already installed, before installing Node.js
+			installWget
+            installNodeJS
+        else
+            echo "Node.js is already installed"
+        
+            npmPath=`which npm`
+
+            # If Node.js is installed, but npm is not installed, then install it.
+            # This is required for installing Azure xplat-cli
+            if [ -z $npmPath ]
+            then
+                echo "npm is not installed. Installation will start..."
+				# Install wget if not already installed, before installing NPM
+				installWget
+                installNPM
+            else
+                echo "npm is already installed"
+            fi
+        fi
+        
+        echo "Installing Azure xplat-cli..."
+        `sudo npm -g install azure-cli`
+        # Certain Linux distros will work with 'sudo npm install' and certain will work with 'npm install'.
+		if [ $? -gt 0 ]
+        then
+			# Provide access to current user to /usr/local directory.
+			# This is required to install Azure xplat-cli using 'npm' command.			
+			currentUser=$(whoami)
+			sudo chown -R $currentUser $usrDir
+            `npm -g install azure-cli`
+        fi
+
+    else
+        echo "Azure xplat-cli is already installed"
+    fi
+}
+
+
 # This function will install Node.js and npm module
 function installNodeJS() {
     # Find out if the Linux Kernel is 32-bit or 64-bit
@@ -40,7 +102,6 @@ function installNodeJS() {
     nodeTar="node-v0.10.26-linux-x$linuxKernel.tar.gz"
     nodeUrl="http://nodejs.org/dist/v0.10.26/$nodeTar"
   
-    usrDir="/usr/local/"
     nodeDir=$HOME/nodeJS
 
     # Remove the directory if it already exists and create a new one
@@ -87,46 +148,52 @@ function installNPM() {
     echo "npm version: `npm -v`"
 }
 
+# This function will install the wget command. Depending on the type of OS, 
+# the default package manager is used to install wget
+function installWget() {
+	wgetPath=`which wget`
 
-# This function checks if Azure xplat-cli is already installed.
-# If not, it will install it
-function installAzureXplatCli() {
-    
-    azureModule=`which azure`
+	if [ -z $wgetPath ]
+	then
+		echo "wget is not installed. Installation will start..."
+		os=$(identifyOS)
 
-    if [ -z $azureModule ]
+		if [ "$os" == "$ubuntu" ]
+		then
+			sudo apt-get -y install wget
+		elif [ "$os" == "$centOS" ]
+		then
+			sudo yum -y install wget
+		elif [ "$os" == "$suse" ]
+		then
+			sudo zypper --non-interactive install wget
+		else
+			exit
+		fi
+	else
+		echo "wget is already installed"
+	fi
+}
+
+
+# This function identifies if the Linux OS is a distribution of Ubuntu, CentOS or SUSE
+function identifyOS() {
+    if [ ! -z "$(cat /etc/*-release | grep -i $ubuntu | head -1)" ]
     then
-        nodePath=`which node`
-        echo "Azure xplat-cli is not installed. Installation will start..."
-        
-        # Check if Node.js is already installed. Else install it. This will also install 'npm' along with Node.js
-        # This is required for installing Azure xplat-cli
-        if [ -z $nodePath ]
-        then
-            echo "Node.js is not installed. Installation will start..."
-            installNodeJS
-        else
-            echo "Node.js is already installed"
-        
-            npmPath=`which npm`
-
-            # If Node.js is installed, but npm is not installed, then install it.
-            # This is required for installing Azure xplat-cli
-            if [ -z $npmPath ]
-            then
-                echo "npm is not installed. Installation will start..."
-                installNPM
-            else
-                echo "npm is already installed"
-            fi
-        fi
-        
-        echo "Installing Azure xplat-cli..."
-        `sudo npm -g install azure-cli`
+        echo $ubuntu
+    elif [ ! -z "$(cat /etc/*-release | grep -i $centOS | head -1)" ]
+    then
+        echo $centOS
+    elif [ ! -z "$(cat /etc/*-release | grep -i $suse | head -1)" ]
+    then
+        echo $suse
     else
-        echo "Azure xplat-cli is already installed"
+        echo "ERROR: OS not supported" >&2
+        cat /etc/*-release >&2
+        exit
     fi
 }
+
 
 
 # Install the Azure xplat-cli if it is not already installed. This is required to execute the 
