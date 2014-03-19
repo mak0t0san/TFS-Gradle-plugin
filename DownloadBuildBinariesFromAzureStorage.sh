@@ -32,18 +32,17 @@ ubuntu="Ubuntu"
 centOS="CentOS"
 suse="SUSE"
 
-usrDir="/usr/local/"
 
 # This function checks if Azure xplat-cli is already installed.
 # If not, it will install it
 function installAzureXplatCli() {
 
     # In case there is a local installation, then add the $HOME/bin to the path, if not already there
-	pathVar=`echo $PATH | grep $HOME/bin`
-	if [ -z $pathVar ]
-	then	    
-		export PATH=$PATH:$HOME/bin
-	fi
+    pathVar=`echo $PATH | grep $HOME/bin`
+    if [ -z $pathVar ]
+    then        
+        export PATH=$PATH:$HOME/bin
+    fi
     
     azureModule=`which azure`
 
@@ -57,8 +56,8 @@ function installAzureXplatCli() {
         if [ -z $nodePath ]
         then
             echo "Node.js is not installed. Installation will start..."
-			# Install wget if not already installed, before installing Node.js
-			installWget
+            # Install wget if not already installed, before installing Node.js
+            installWget
             installNodeJS
         else
             echo "Node.js is already installed"
@@ -70,8 +69,8 @@ function installAzureXplatCli() {
             if [ -z $npmPath ]
             then
                 echo "npm is not installed. Installation will start..."
-				# Install wget if not already installed, before installing NPM
-				installWget
+                # Install wget if not already installed, before installing NPM
+                installWget
                 installNPM
             else
                 echo "npm is already installed"
@@ -109,22 +108,22 @@ function installNodeJS() {
     wget $nodeUrl
     tar --strip-components=1 -zxf $nodeTar
     
-	if [ ! -d "$HOME/bin" ]
-	then
-		mkdir $HOME/bin
-	fi
-	
-	if [ ! -d "$HOME/lib" ]
-	then
-		mkdir $HOME/lib
-	fi
-	
-	if [ ! -d "$HOME/share" ]
-	then
-		mkdir $HOME/share
-	fi
-	
-	cp bin/* $HOME/bin
+    if [ ! -d "$HOME/bin" ]
+    then
+        mkdir $HOME/bin
+    fi
+    
+    if [ ! -d "$HOME/lib" ]
+    then
+        mkdir $HOME/lib
+    fi
+    
+    if [ ! -d "$HOME/share" ]
+    then
+        mkdir $HOME/share
+    fi
+    
+    cp bin/* $HOME/bin
     cp -R lib/* $HOME/lib
     cp -R share/* $HOME/share
     
@@ -146,16 +145,16 @@ function installNPM() {
     # Download the install.sh to the user's home directory
     wget -P $HOME  https://npmjs.org/install.sh
     
-	# install.sh has a command which has input redirection from the terminal (/dev/tty). 
-	# This will not work when the script is executed remotely, since there is no terminal. 
-	# Replace it with /dev/null
-	sed -i "s/\/dev\/tty/\/dev\/null/g" $HOME/install.sh
-	
+    # install.sh has a command which has input redirection from the terminal (/dev/tty). 
+    # This will not work when the script is executed remotely, since there is no terminal. 
+    # Replace it with /dev/null
+    sed -i "s/\/dev\/tty/\/dev\/null/g" $HOME/install.sh
+    
     sh $HOME/install.sh
     
     # Remove the install.sh and tmp directory generated, after installing npm
     rm $HOME/install.sh
-	rm -r $HOME/tmp
+    rm -r $HOME/tmp
     
     echo "npm version: `npm -v`"
 }
@@ -163,28 +162,28 @@ function installNPM() {
 # This function will install the wget command. Depending on the type of OS, 
 # the default package manager is used to install wget
 function installWget() {
-	wgetPath=`which wget`
+    wgetPath=`which wget`
 
-	if [ -z $wgetPath ]
-	then
-		echo "wget is not installed. Installation will start..."
-		os=$(identifyOS)
+    if [ -z $wgetPath ]
+    then
+        echo "wget is not installed. Installation will start..."
+        os=$(identifyOS)
 
-		if [ "$os" == "$ubuntu" ]
-		then
-			sudo apt-get -y install wget
-		elif [ "$os" == "$centOS" ]
-		then
-			sudo yum -y install wget
-		elif [ "$os" == "$suse" ]
-		then
-			sudo zypper --non-interactive install wget
-		else
-			exit
-		fi
-	else
-		echo "wget is already installed"
-	fi
+        if [ "$os" == "$ubuntu" ]
+        then
+            sudo apt-get -y install wget
+        elif [ "$os" == "$centOS" ]
+        then
+            sudo yum -y install wget
+        elif [ "$os" == "$suse" ]
+        then
+            sudo zypper --non-interactive install wget
+        else
+            exit
+        fi
+    else
+        echo "wget is already installed"
+    fi
 }
 
 
