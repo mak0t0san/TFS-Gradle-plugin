@@ -37,6 +37,13 @@ usrDir="/usr/local/"
 # This function checks if Azure xplat-cli is already installed.
 # If not, it will install it
 function installAzureXplatCli() {
+
+    # In case there is a local installation, then add the $HOME/bin to the path, if not already there
+	pathVar=`echo $PATH | grep $HOME/bin`
+	if [ -z $pathVar ]
+	then	    
+		export PATH=$PATH:$HOME/bin
+	fi
     
     azureModule=`which azure`
 
@@ -72,17 +79,7 @@ function installAzureXplatCli() {
         fi
         
         echo "Installing Azure xplat-cli..."
-        `sudo npm -g install azure-cli`
-        # Certain Linux distros will work with 'sudo npm install' and certain will work with 'npm install'.
-		if [ $? -gt 0 ]
-        then
-			# Provide access to current user to /usr/local directory.
-			# This is required to install Azure xplat-cli using 'npm' command.			
-			currentUser=$(whoami)
-			sudo chown -R $currentUser $usrDir
-            `npm -g install azure-cli`
-        fi
-
+        `npm -g install azure-cli`
     else
         echo "Azure xplat-cli is already installed"
     fi
@@ -112,17 +109,32 @@ function installNodeJS() {
     wget $nodeUrl
     tar --strip-components=1 -zxf $nodeTar
     
-    sudo cp bin/* $usrDir/bin
-    sudo cp -R lib/* $usrDir/lib
-    sudo cp -R share/* $usrDir/share
+	if [ ! -d "$HOME/bin" ]
+	then
+		mkdir $HOME/bin
+	fi
+	
+	if [ ! -d "$HOME/lib" ]
+	then
+		mkdir $HOME/lib
+	fi
+	
+	if [ ! -d "$HOME/share" ]
+	then
+		mkdir $HOME/share
+	fi
+	
+	cp bin/* $HOME/bin
+    cp -R lib/* $HOME/lib
+    cp -R share/* $HOME/share
     
     # Remove the node directory in user's home directory after copying to /usr/local
     rm -r $nodeDir
 
-    cd $usrDir/bin
+    cd $HOME/bin
     # Remove the copied file and create a symbolic link to npm
-    sudo rm -r npm
-    sudo ln -s ../lib/node_modules/npm/bin/npm-cli.js npm
+    rm -r npm
+    ln -s ../lib/node_modules/npm/bin/npm-cli.js npm
 
     echo "Node.js version: `node -v`"
     echo "npm version: `npm -v`"
@@ -139,7 +151,7 @@ function installNPM() {
 	# Replace it with /dev/null
 	sed -i "s/\/dev\/tty/\/dev\/null/g" $HOME/install.sh
 	
-    sudo sh $HOME/install.sh
+    sh $HOME/install.sh
     
     # Remove the install.sh and tmp directory generated, after installing npm
     rm $HOME/install.sh
