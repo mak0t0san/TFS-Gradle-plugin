@@ -1,0 +1,13 @@
+C:\Microsoft practice\TFS\Shalini\Gradletask\GradleBuildTemplate\BuildProcess\bin\BuildProcess.dll
+C:\Microsoft practice\TFS\Shalini\Gradletask\GradleBuildTemplate\BuildProcess\bin\BuildProcess.pdb
+C:\Microsoft practice\TFS\Shalini\Gradletask\GradleBuildTemplate\BuildProcess\bin\Newtonsoft.Json.dll
+C:\Microsoft practice\TFS\Shalini\Gradletask\GradleBuildTemplate\BuildProcess\bin\System.Net.Http.Formatting.dll
+C:\Microsoft practice\TFS\Shalini\Gradletask\GradleBuildTemplate\BuildProcess\bin\Microsoft.TeamFoundation.WorkItemTracking.Client.DataStoreLoader.dll
+C:\Microsoft practice\TFS\Shalini\Gradletask\GradleBuildTemplate\BuildProcess\bin\System.Web.Http.dll
+C:\Microsoft practice\TFS\Shalini\Gradletask\GradleBuildTemplate\BuildProcess\bin\System.Net.Http.Formatting.xml
+C:\Microsoft practice\TFS\Shalini\Gradletask\GradleBuildTemplate\BuildProcess\bin\System.Web.Http.xml
+C:\Microsoft practice\TFS\Shalini\Gradletask\GradleBuildTemplate\BuildProcess\bin\Microsoft.WITDataStore.dll
+C:\Microsoft practice\TFS\Shalini\Gradletask\GradleBuildTemplate\BuildProcess\obj\Debug\BuildProcess.CustomEditors.PasswordDialog.resources
+C:\Microsoft practice\TFS\Shalini\Gradletask\GradleBuildTemplate\BuildProcess\obj\Debug\BuildProcess.csproj.GenerateResource.Cache
+C:\Microsoft practice\TFS\Shalini\Gradletask\GradleBuildTemplate\BuildProcess\obj\Debug\BuildProcess.dll
+C:\Microsoft practice\TFS\Shalini\Gradletask\GradleBuildTemplate\BuildProcess\obj\Debug\BuildProcess.pdb
