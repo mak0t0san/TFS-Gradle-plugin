@@ -1,3 +1,4 @@
+
 <#
 .SYNOPSIS
     Gets the details of all the VMs present in a Cloud Service and deploys the Build
@@ -108,9 +109,9 @@ Try
     # Reset the error variable
     $error.clear()
 
-    $logFileContent =  "================================================================================================================================`n" `
-                     + "                                 DEPLOYMENT SCRIPT EXECUTION FOR BUILD - `"" + $BlobNamePrefix + "`"                                        `n" `
-                     + "================================================================================================================================`n"
+    $logFileContent =  "===========================================================================`n" `
+                     + "                  DEPLOYMENT1 SCRIPT EXECUTION FOR BUILD - `"" + $BlobNamePrefix + "`"                   `n" `
+                     + "===========================================================================`n"
 
     echo $logFileContent
     $logFileContent = '';
@@ -120,14 +121,12 @@ Try
     $DefaultSSHPort = "22"
     $WindowsDownloadScript =  $deploymentScriptsDir + "\DownloadBuildBinariesFromAzureStorage.ps1"
     $LinuxDownloadScript =  $deploymentScriptsDir + "\DownloadBuildBinariesFromAzureStorage.sh"
-
+   #echo "deploymentScriptsDir"
+   #echo $deploymentScriptsDir
     $cloudServieDNS = $CloudServiceName + ".cloudapp.net"
    
-    $WinPassword = 'virtual@M'
-    echo "Password: "
-    echo $WinPassword
-    echo "VMUserName: "
-    echo $VMUserName
+    $WinPassword = [System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String($WinPassword))
+
     # Form the variables for Windows VMs
     $securePassword =ConvertTo-SecureString -AsPlainText -Force -String $WinPassword
 
@@ -154,14 +153,15 @@ Try
     $logFileContent = '';
     
     # Use the 'Get Cloud Service Properties' Service Management REST API to get the details of all the VMs hosted in the Cloud Service
-    $logFileContent = $logFileContent + "Get Cloud Service Properties n"
+    $logFileContent = $logFileContent + "Get Cloud Service Properties"
 
     $reqHeaderDict = @{}
     $reqHeaderDict.Add('x-ms-version','2012-03-01') # API version
     $restURI = "https://management.core.windows.net/" + $SubscriptionId + "/services/hostedservices/" + $CloudServiceName + "?embed-detail=true"
     [xml]$cloudProperties = Invoke-RestMethod -Uri $restURI -CertificateThumbprint $mgmtCertThumbprint -Headers $reqHeaderDict 
 
-    echo $logFileContent
+    echo $logFileContent 
+    $logFileContent = '';
 
     # Iterate through the Cloud Properties and get the details of each VM.
     # Depending on the OS (Windows or Linux), execute corresponding download scripts.
@@ -169,20 +169,13 @@ Try
     $cloudProperties.HostedService.Deployments.Deployment.RoleList.Role | foreach {
     
         $OS = $_.OSVirtualHardDisk.OS
-        echo "OS"
-        echo $OS
+        
         if ($OS -ieq $WindowsOS)
         {
             $logFileContent = $logFileContent `
-                                    + "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ TRIGGERING DEPLOYMENT TO " `
+                                    + "~~~~~~~~~~~~~~ TRIGGERING DEPLOYMENT TO " `
                                     + $WindowsOS + " VM : " + $_.RoleName `
-                                    + " ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ `n"
-
-            # Import the Cloud Service Certificate
-            $logFileContent = $logFileContent + "Importing the Cloud Service Certificate...... `n"
-            $certToImport = New-Object System.Security.Cryptography.X509Certificates.X509Certificate2 $WinCertificate
-            ImportCertificate $certToImport
-            $logFileContent = $logFileContent + "......Imported the Cloud Service Certificate `n"
+                                    + " ~~~~~~~~~~~~~~ `n"
 
             $publicWinRMPort = "0"
 
@@ -202,9 +195,9 @@ Try
             else
             {
                 $logFileContent = $logFileContent + "Remotely triggering the download script on the VM `n"
-            
+            #-InDisconnectedSession
                 Invoke-Command -ComputerName $cloudServieDNS -Credential $credential `
-                    -InDisconnectedSession -SessionOption $sessionOption `
+                     -SessionOption $sessionOption `
                     -UseSSL -Port $publicWinRMPort `
                     -FilePath $WindowsDownloadScript `
                     -ArgumentList $StorageAccountName, $StorageAccountKey, $StorageContainerName, $WinAppPath, $BlobNamePrefix
@@ -218,17 +211,17 @@ Try
                 }
 
                 $logFileContent = $logFileContent `
-                        + "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ TRIGGERED DEPLOYMENT TO " `
+                        + "~~~~~~~~~~~~~~ TRIGGERED DEPLOYMENT TO " `
                         + $WindowsOS + " VM : " + $_.RoleName `
-                        + " ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ `n"
+                        + " ~~~~~~~~~~~~~~ `n"
             }
         }
         elseif ($OS -ieq $LinuxOS)
         {
             $logFileContent = $logFileContent `
-                                    + "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ TRIGGERING DEPLOYMENT TO " `
+                                    + "~~~~~~~~~~~~~~ TRIGGERING DEPLOYMENT TO " `
                                     + $LinuxOS + " VM : " + $_.RoleName `
-                                    + " ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ `n"
+                                    + " ~~~~~~~~~~~~~~ `n"
 
             $publicSSHPort = 0
 
@@ -260,9 +253,9 @@ Try
                 }
 
                 $logFileContent = $logFileContent `
-                        + "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ TRIGGERED DEPLOYMENT TO " `
+                        + "~~~~~~~~~~~~~~ TRIGGERED DEPLOYMENT TO " `
                         + $LinuxOS + " VM : " + $_.RoleName `
-                        + " ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ `n"
+                        + " ~~~~~~~~~~~~~~ `n"
             }
         }
         else
@@ -271,7 +264,7 @@ Try
         }
     }
 
-     
+   
 }
 Catch
 {

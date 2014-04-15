@@ -14,15 +14,10 @@ namespace BuildProcess.CustomEditors
         
         public override string ToString()
         {
-            string maskedPassword = "";
+            byte[] bytesToEncode = Encoding.UTF8.GetBytes(PasswordField);
+            string encodedText = Convert.ToBase64String(bytesToEncode);
 
-            for (int i = 0; i < PasswordField.Length; i++)
-            {
-                maskedPassword += "*";
-            }
-
-            //return maskedPassword;
-            return PasswordField;
+            return encodedText;
         }
     }
 }

@@ -57,10 +57,12 @@ Try
 
     # Set the properties for logging
     $logFile = $systemDrive + '\DownloadBuildBinariesFromAzureStorage.log'
-    $logFileContent =  "================================================================================================================================`n" `
-                     + "                                 DOWNLOAD STATUS FOR BUILD - `"" + $BlobNamePrefix + "`"                                        `n" `
-                     + "================================================================================================================================`n"
+    $logFileContent =  "===========================================================================`n" `
+                     + "                  DOWNLOAD1 STATUS FOR BUILD - `"" + $BlobNamePrefix + "`"               `n" `
+                     + "===========================================================================`n"
 
+    echo $logFileContent 
+    $logFileContent = '';
 
     $userProfile = iex ('$env:USERPROFILE')
     
@@ -69,26 +71,42 @@ Try
 
     # Check if Azure PowerShell module exists, else install it
     $azureCmdlet = Get-Module -ListAvailable -Name 'Azure'
+    echo '$azureCmdlet.Name '
+    echo $azureCmdlet.Name 
     if ($azureCmdlet.Name -eq "Azure")
     {
         $logFileContent = $logFileContent + "Windows Azure PowerShell module is already available. `n"
         $continueScript = $true
+
+        echo $logFileContent 
+        $logFileContent = '';
     }
     else
     {
         $logFileContent = $logFileContent + "Windows Azure PowerShell is not installed. `n"
         
+        echo $logFileContent 
+        $logFileContent = '';
+
         # Check if Web PI Command exists, else install it so that Azure PowerShell can be installed through it
-        Get-Command 'WebPICmd'
-        if ($error.Count -gt 0)
-        {
+#Get-Command 'WebPICmd'
+        #if ($error.Count -gt 0)
+        #{
             # Reset the error variable, so that subsequent cmdlet execution will not consider this error
             $error.clear()
                     
             $logFileContent = $logFileContent + "Web PI Command does not exist. Installation will start.... `n"
             
             # Download and Install Web Platform Installer Command Line
-            (new-object net.webclient).DownloadFile('http://download.microsoft.com/download/7/0/4/704CEB4C-9F42-4962-A2B0-5C84B0682C7A/WebPlatformInstaller_amd64_en-US.msi', $webPICmdMSI)
+            if ([IntPtr]::Size -eq 4)
+            {
+                (new-object net.webclient).DownloadFile('http://download.microsoft.com/download/7/0/4/704CEB4C-9F42-4962-A2B0-5C84B0682C7A/WebPlatformInstaller_amd64_en-US.msi', $webPICmdMSI)
+            }
+            else
+            {
+                (new-object net.webclient).DownloadFile('http://download.microsoft.com/download/7/0/4/704CEB4C-9F42-4962-A2B0-5C84B0682C7A/WebPlatformInstaller_x86_en-US.msi', $webPICmdMSI)
+            }
+
             Start-Process -FilePath $webPICmdMSI -ArgumentList '/quiet' -PassThru | Wait-Process
             if ($error.Count -gt 0)
             {
@@ -111,14 +129,19 @@ Try
 
                 $logFileContent = $logFileContent + "....Web PI Command has been successfully installed. `n"
             }
-        }
-        else
-        {
-            $logFileContent = $logFileContent + "Web PI Command is already installed. `n"
-        }
+        #}
+        ##else
+#{
+#$logFileContent = $logFileContent + "Web PI Command is already installed. `n"
+       # }
+
+        echo $logFileContent 
+        $logFileContent = '';
 
         $logFileContent = $logFileContent + "Windows Azure PowerShell installation will start..... `n"
-        
+        echo $logFileContent 
+        $logFileContent = '';
+
         # Install WindowsAzurePowerShell
         Start-Process 'WebPICmd' -ArgumentList '/Install /AcceptEULA /Products:WindowsAzurePowershell' -NoNewWindow -PassThru | Wait-Process
         if ($error.Count -gt 0)
@@ -133,12 +156,14 @@ Try
         $logFileContent = $logFileContent + "....Windows Azure PowerShell has been successfully installed. `n"
         
         $continueScript = $true
+        echo $logFileContent 
+        $logFileContent = '';
     }    
     
     if ($continueScript)
     {
         # Load the installed Azure module
-        Import-Module Azure
+       # Import-Module Azure
         if ($error.Count -gt 0)
         {
             throw "ERROR OCCURRED: While importing Azure PowerShell module"

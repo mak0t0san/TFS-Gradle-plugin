@@ -33,5 +33,11 @@ namespace BuildProcess.CustomEditors
         {
             PasswordTextbox.Clear();
         }
+
+        private void buttonOK_Click(object sender, EventArgs e)
+        {
+            Password pass = new Password();
+            pass.PasswordField = PasswordTextbox.Text;
+        }
     }
 }

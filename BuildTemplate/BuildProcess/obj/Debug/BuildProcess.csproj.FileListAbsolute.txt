@@ -11,3 +11,16 @@ C:\Microsoft practice\TFS\Shalini\Gradletask\GradleBuildTemplate\BuildProcess\ob
 C:\Microsoft practice\TFS\Shalini\Gradletask\GradleBuildTemplate\BuildProcess\obj\Debug\BuildProcess.csproj.GenerateResource.Cache
 C:\Microsoft practice\TFS\Shalini\Gradletask\GradleBuildTemplate\BuildProcess\obj\Debug\BuildProcess.dll
 C:\Microsoft practice\TFS\Shalini\Gradletask\GradleBuildTemplate\BuildProcess\obj\Debug\BuildProcess.pdb
+C:\Thiru\GradleBuildRepo\GradleBuildTemplate\BuildTemplate\BuildProcess\bin\BuildProcess.dll
+C:\Thiru\GradleBuildRepo\GradleBuildTemplate\BuildTemplate\BuildProcess\bin\BuildProcess.pdb
+C:\Thiru\GradleBuildRepo\GradleBuildTemplate\BuildTemplate\BuildProcess\bin\Newtonsoft.Json.dll
+C:\Thiru\GradleBuildRepo\GradleBuildTemplate\BuildTemplate\BuildProcess\bin\System.Net.Http.Formatting.dll
+C:\Thiru\GradleBuildRepo\GradleBuildTemplate\BuildTemplate\BuildProcess\bin\Microsoft.TeamFoundation.WorkItemTracking.Client.DataStoreLoader.dll
+C:\Thiru\GradleBuildRepo\GradleBuildTemplate\BuildTemplate\BuildProcess\bin\System.Web.Http.dll
+C:\Thiru\GradleBuildRepo\GradleBuildTemplate\BuildTemplate\BuildProcess\bin\System.Net.Http.Formatting.xml
+C:\Thiru\GradleBuildRepo\GradleBuildTemplate\BuildTemplate\BuildProcess\bin\System.Web.Http.xml
+C:\Thiru\GradleBuildRepo\GradleBuildTemplate\BuildTemplate\BuildProcess\bin\Microsoft.WITDataStore.dll
+C:\Thiru\GradleBuildRepo\GradleBuildTemplate\BuildTemplate\BuildProcess\obj\Debug\BuildProcess.CustomEditors.PasswordDialog.resources
+C:\Thiru\GradleBuildRepo\GradleBuildTemplate\BuildTemplate\BuildProcess\obj\Debug\BuildProcess.csproj.GenerateResource.Cache
+C:\Thiru\GradleBuildRepo\GradleBuildTemplate\BuildTemplate\BuildProcess\obj\Debug\BuildProcess.dll
+C:\Thiru\GradleBuildRepo\GradleBuildTemplate\BuildTemplate\BuildProcess\obj\Debug\BuildProcess.pdb
