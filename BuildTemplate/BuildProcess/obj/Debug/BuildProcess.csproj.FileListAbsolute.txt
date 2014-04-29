@@ -24,17 +24,3 @@ C:\Thiru\GradleBuildRepo\GradleBuildTemplate\BuildTemplate\BuildProcess\obj\Debu
 C:\Thiru\GradleBuildRepo\GradleBuildTemplate\BuildTemplate\BuildProcess\obj\Debug\BuildProcess.csproj.GenerateResource.Cache
 C:\Thiru\GradleBuildRepo\GradleBuildTemplate\BuildTemplate\BuildProcess\obj\Debug\BuildProcess.dll
 C:\Thiru\GradleBuildRepo\GradleBuildTemplate\BuildTemplate\BuildProcess\obj\Debug\BuildProcess.pdb
-C:\Gradle\TFS-Gradle-plugin\BuildTemplate\BuildProcess\bin\BuildProcess.dll
-C:\Gradle\TFS-Gradle-plugin\BuildTemplate\BuildProcess\bin\BuildProcess.pdb
-C:\Gradle\TFS-Gradle-plugin\BuildTemplate\BuildProcess\bin\Newtonsoft.Json.dll
-C:\Gradle\TFS-Gradle-plugin\BuildTemplate\BuildProcess\bin\System.Net.Http.Formatting.dll
-C:\Gradle\TFS-Gradle-plugin\BuildTemplate\BuildProcess\bin\Microsoft.TeamFoundation.WorkItemTracking.Client.DataStoreLoader.dll
-C:\Gradle\TFS-Gradle-plugin\BuildTemplate\BuildProcess\bin\System.Web.Http.dll
-C:\Gradle\TFS-Gradle-plugin\BuildTemplate\BuildProcess\bin\Newtonsoft.Json.xml
-C:\Gradle\TFS-Gradle-plugin\BuildTemplate\BuildProcess\bin\System.Net.Http.Formatting.xml
-C:\Gradle\TFS-Gradle-plugin\BuildTemplate\BuildProcess\bin\System.Web.Http.xml
-C:\Gradle\TFS-Gradle-plugin\BuildTemplate\BuildProcess\bin\Microsoft.WITDataStore.dll
-C:\Gradle\TFS-Gradle-plugin\BuildTemplate\BuildProcess\obj\Debug\BuildProcess.CustomEditors.PasswordDialog.resources
-C:\Gradle\TFS-Gradle-plugin\BuildTemplate\BuildProcess\obj\Debug\BuildProcess.csproj.GenerateResource.Cache
-C:\Gradle\TFS-Gradle-plugin\BuildTemplate\BuildProcess\obj\Debug\BuildProcess.dll
-C:\Gradle\TFS-Gradle-plugin\BuildTemplate\BuildProcess\obj\Debug\BuildProcess.pdb
