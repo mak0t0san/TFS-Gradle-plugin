@@ -50,6 +50,7 @@
     <x:Property Name="VMSSHKey" Type="InArgument(x:String)" />
     <x:Property Name="VMAppPathWindows" Type="InArgument(x:String)" />
     <x:Property Name="VMAppPathLinux" Type="InArgument(x:String)" />
+    <x:Property Name="GradlePath" Type="OutArgument(scg:IEnumerable(x:String))" />
   </x:Members>
   <this:Process.CheckoutOverride>
     <InArgument x:TypeArguments="x:String" />
@@ -151,7 +152,6 @@
     <mtbwa:AgentScope DataToIgnore="" DisplayName="Run on agent" sap2010:WorkflowViewState.IdRef="AgentScope_1" MaxExecutionTime="[AgentSettings.GetValue(Of TimeSpan)(&quot;MaxExecutionTime&quot;, New System.TimeSpan(0,0,0))]" MaxWaitTime="[AgentSettings.GetValue(Of TimeSpan)(&quot;MaxWaitTime&quot;, New System.TimeSpan(4,0,0))]" ReservationSpec="[AgentSettings.CreateAgentReservationSpec()]" mva:VisualBasic.Settings="Assembly references and imported namespaces serialized as XML namespaces">
       <mtbwa:AgentScope.Variables>
         <Variable x:TypeArguments="x:String" Name="gradleHome" />
-        <Variable x:TypeArguments="x:String" Default="\bin\gradle.bat" Name="gradleBatFile" />
         <Variable x:TypeArguments="x:String" Name="gradleBuildScriptName" />
         <Variable x:TypeArguments="x:String" Name="gradleBuildScriptLocalPath" />
         <Variable x:TypeArguments="x:String" Name="gradleBuildScriptRelativePath" />
@@ -263,14 +263,17 @@
                   <Throw DisplayName="Throw Exception so that build will stop" Exception="[New Exception(&quot;GRADLE_HOME environment variable is not set&quot;)]" sap2010:WorkflowViewState.IdRef="Throw_24" />
                 </If.Then>
                 <If.Else>
-                  <Assign DisplayName="Using %GRADLE_HOME%, get the path of gradle.bat" sap2010:WorkflowViewState.IdRef="Assign_31" mtbwt:BuildTrackingParticipant.Importance="Low">
-                    <Assign.To>
-                      <OutArgument x:TypeArguments="x:String">[gradleCommandExecution]</OutArgument>
-                    </Assign.To>
-                    <Assign.Value>
-                      <InArgument x:TypeArguments="x:String">[gradleHome + gradleBatFile]</InArgument>
-                    </Assign.Value>
-                  </Assign>
+                  <Sequence sap2010:WorkflowViewState.IdRef="Sequence_54">
+                    <mtbwa:FindMatchingFiles sap2010:WorkflowViewState.IdRef="FindMatchingFiles_1" MatchPattern="[String.Format(&quot;{0}\**\gradle.bat&quot;, gradleHome)]" Result="[GradlePath]" />
+                    <Assign DisplayName="Using %GRADLE_HOME%, get the path of gradle.bat" sap2010:WorkflowViewState.IdRef="Assign_31" mtbwt:BuildTrackingParticipant.Importance="Low">
+                      <Assign.To>
+                        <OutArgument x:TypeArguments="x:String">[gradleCommandExecution]</OutArgument>
+                      </Assign.To>
+                      <Assign.Value>
+                        <InArgument x:TypeArguments="x:String">[GradlePath.First()]</InArgument>
+                      </Assign.Value>
+                    </Assign>
+                  </Sequence>
                 </If.Else>
               </If>
             </Sequence>
@@ -414,14 +417,14 @@
                   <InArgument x:TypeArguments="x:String">[VMPassword.PasswordField]</InArgument>
                 </Assign.Value>
               </Assign>
-              <If Condition="[String.IsNullOrEmpty(winVMPassword) And String.IsNullOrEmpty(VMAppPathWindows)]" DisplayName="Validate Windows VM inputs" sap2010:WorkflowViewState.IdRef="If_66">
+              <If Condition="[(String.IsNullOrEmpty(winVMPassword) And String.IsNullOrEmpty(VMAppPathWindows)) And Not String.IsNullOrEmpty(VMAppPathLinux)]" DisplayName="Validate Windows VM inputs" sap2010:WorkflowViewState.IdRef="If_66">
                 <If.Then>
-                  <mtbwa:WriteBuildMessage DisplayName="No Windows VM Details" sap2010:WorkflowViewState.IdRef="WriteBuildMessage_53" Importance="[Microsoft.TeamFoundation.Build.Client.BuildMessageImportance.High]" Message="Windows VM inputs (Password, SSL Certificate, Application Path) are not provided. Hence deployment will not happen to any Windows VMs in the Cloud Service, if present" mva:VisualBasic.Settings="Assembly references and imported namespaces serialized as XML namespaces" />
+                  <mtbwa:WriteBuildMessage DisplayName="No Windows VM Details" sap2010:WorkflowViewState.IdRef="WriteBuildMessage_53" Importance="[Microsoft.TeamFoundation.Build.Client.BuildMessageImportance.High]" Message="Windows VM inputs (Password and Application Path) are not provided. Hence deployment will not happen to any Windows VMs in the Cloud Service, if present" mva:VisualBasic.Settings="Assembly references and imported namespaces serialized as XML namespaces" />
                 </If.Then>
                 <If.Else>
                   <If Condition="[String.IsNullOrEmpty(winVMPassword) And String.IsNullOrEmpty(VMAppPathWindows)]" DisplayName="Windows VM - Are all details provided?" sap2010:WorkflowViewState.IdRef="If_68">
                     <If.Then>
-                      <Throw DisplayName="Throw Exception so that build will stop" Exception="[New Exception(&quot;For Windows VM(s), the following inputs are mandatory: SSH Key File, Application Path. All inputs are not provided!&quot;)]" sap2010:WorkflowViewState.IdRef="Throw_55" />
+                      <Throw DisplayName="Throw Exception so that build will stop" Exception="[New Exception(&quot;For Windows VM(s), the following inputs are mandatory: VM User Name, VM Password and Application Path parameters are required. Currently some are not provided!&quot;)]" sap2010:WorkflowViewState.IdRef="Throw_55" />
                     </If.Then>
                     <If.Else>
                       <Sequence sap2010:WorkflowViewState.IdRef="Sequence_53">
@@ -515,7 +518,7 @@
                 </Assign>
               </ActivityAction>
             </ForEach>
-            <mtbwa:WriteBuildMessage DisplayName="Gradle Command Execution" sap2010:WorkflowViewState.IdRef="WriteBuildMessage_8" Importance="[Microsoft.TeamFoundation.Build.Client.BuildMessageImportance.Low]" Message="[gradleCommandExecution + &quot; &quot; + gradleCommandOptions]" mva:VisualBasic.Settings="Assembly references and imported namespaces serialized as XML namespaces" />
+            <mtbwa:WriteBuildMessage DisplayName="Gradle Command Execution" sap2010:WorkflowViewState.IdRef="WriteBuildMessage_8" Importance="[Microsoft.TeamFoundation.Build.Client.BuildMessageImportance.High]" Message="[gradleCommandExecution + &quot; &quot; + gradleCommandOptions]" mva:VisualBasic.Settings="Assembly references and imported namespaces serialized as XML namespaces" />
             <mtbwa:InvokeProcess Arguments="[gradleCommandOptions]" DisplayName="Execute Gradle Build" FileName="[gradleCommandExecution]" sap2010:WorkflowViewState.IdRef="InvokeProcess_1" WorkingDirectory="[gradleBuildScriptLocalPath]">
               <mtbwa:InvokeProcess.ErrorDataReceived>
                 <ActivityAction x:TypeArguments="x:String">
@@ -570,7 +573,7 @@
                       <InArgument x:TypeArguments="x:String">["-command ""$context = New-AzureStorageContext -StorageAccountName " + storageAccountName + " -StorageAccountKey " + StorageAccountKey + " ; $filesToUpload = ls -File -Recurse -Path '" + gradleBuildOutputPath + "'; foreach($file in $filesToUpload) {$blobName = $file.FullName.Substring(" + gradleBuildOutputPath.Length.ToString + " + 1); Set-AzureStorageBlobContent -Blob $blobName -Container " + storageContainerName + " -Context $context -File $file.FullName}"""]</InArgument>
                     </Assign.Value>
                   </Assign>
-                  <mtbwa:WriteBuildMessage DisplayName="Azure Storage Upload Command" sap2010:WorkflowViewState.IdRef="WriteBuildMessage_37" Importance="[Microsoft.TeamFoundation.Build.Client.BuildMessageImportance.Low]" Message="[&quot;Azure PowerShell Command - Upload to Storage: powershell &quot; + invokeProcessCmd]" mva:VisualBasic.Settings="Assembly references and imported namespaces serialized as XML namespaces" />
+                  <mtbwa:WriteBuildMessage DisplayName="Azure Storage Upload Command" sap2010:WorkflowViewState.IdRef="WriteBuildMessage_37" Importance="[Microsoft.TeamFoundation.Build.Client.BuildMessageImportance.High]" Message="[&quot;Azure PowerShell Command - Upload to Storage: powershell &quot; + invokeProcessCmd]" mva:VisualBasic.Settings="Assembly references and imported namespaces serialized as XML namespaces" />
                   <mtbwa:InvokeProcess Arguments="[invokeProcessCmd]" DisplayName="Upload Build Binaries" FileName="powershell" sap2010:WorkflowViewState.IdRef="InvokeProcess_10">
                     <mtbwa:InvokeProcess.ErrorDataReceived>
                       <ActivityAction x:TypeArguments="x:String">
@@ -725,7 +728,7 @@
         </TryCatch.Catches>
       </TryCatch>
     </mtbwa:AgentScope>
-    <sads:DebugSymbol.Symbol>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</sads:DebugSymbol.Symbol>
+    <sads:DebugSymbol.Symbol>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</sads:DebugSymbol.Symbol>
   </Sequence>
   <sap2010:WorkflowViewState.ViewStateManager>
     <sap2010:ViewStateManager>
@@ -753,7 +756,7 @@
         </sap:WorkflowViewStateService.ViewState>
       </sap2010:ViewStateData>
       <sap2010:ViewStateData Id="WriteBuildWarning_1" sap:VirtualizedContainerService.HintSize="200,22" />
-      <sap2010:ViewStateData Id="If_14" sap:VirtualizedContainerService.HintSize="1018,208" />
+      <sap2010:ViewStateData Id="If_14" sap:VirtualizedContainerService.HintSize="1040,208" />
       <sap2010:ViewStateData Id="WriteBuildWarning_2" sap:VirtualizedContainerService.HintSize="200,22" />
       <sap2010:ViewStateData Id="If_15" sap:VirtualizedContainerService.HintSize="464,208" />
       <sap2010:ViewStateData Id="GetLocalPath_8" sap:VirtualizedContainerService.HintSize="200,22" />
@@ -775,18 +778,26 @@
         </sap:WorkflowViewStateService.ViewState>
       </sap2010:ViewStateData>
       <sap2010:ViewStateData Id="TryCatch_3" sap:VirtualizedContainerService.HintSize="504,994" />
-      <sap2010:ViewStateData Id="GetEnvironmentVariable`1_4" sap:VirtualizedContainerService.HintSize="467,22" />
+      <sap2010:ViewStateData Id="GetEnvironmentVariable`1_4" sap:VirtualizedContainerService.HintSize="489,22" />
       <sap2010:ViewStateData Id="Throw_24" sap:VirtualizedContainerService.HintSize="200,22" />
+      <sap2010:ViewStateData Id="FindMatchingFiles_1" sap:VirtualizedContainerService.HintSize="242,22" />
       <sap2010:ViewStateData Id="Assign_31" sap:VirtualizedContainerService.HintSize="242,60" />
-      <sap2010:ViewStateData Id="If_44" sap:VirtualizedContainerService.HintSize="467,208" />
-      <sap2010:ViewStateData Id="Sequence_24" sap:VirtualizedContainerService.HintSize="489,394">
+      <sap2010:ViewStateData Id="Sequence_54" sap:VirtualizedContainerService.HintSize="264,246">
         <sap:WorkflowViewStateService.ViewState>
           <scg:Dictionary x:TypeArguments="x:String, x:Object">
             <x:Boolean x:Key="IsExpanded">True</x:Boolean>
           </scg:Dictionary>
         </sap:WorkflowViewStateService.ViewState>
       </sap2010:ViewStateData>
-      <sap2010:ViewStateData Id="If_4" sap:VirtualizedContainerService.HintSize="1018,1142" />
+      <sap2010:ViewStateData Id="If_44" sap:VirtualizedContainerService.HintSize="489,394" />
+      <sap2010:ViewStateData Id="Sequence_24" sap:VirtualizedContainerService.HintSize="511,580">
+        <sap:WorkflowViewStateService.ViewState>
+          <scg:Dictionary x:TypeArguments="x:String, x:Object">
+            <x:Boolean x:Key="IsExpanded">True</x:Boolean>
+          </scg:Dictionary>
+        </sap:WorkflowViewStateService.ViewState>
+      </sap2010:ViewStateData>
+      <sap2010:ViewStateData Id="If_4" sap:VirtualizedContainerService.HintSize="1040,1142" />
       <sap2010:ViewStateData Id="WriteBuildWarning_3" sap:VirtualizedContainerService.HintSize="200,22" />
       <sap2010:ViewStateData Id="If_19" sap:VirtualizedContainerService.HintSize="464,208" />
       <sap2010:ViewStateData Id="GetLocalPath_9" sap:VirtualizedContainerService.HintSize="242,22" />
@@ -815,7 +826,7 @@
           </scg:Dictionary>
         </sap:WorkflowViewStateService.ViewState>
       </sap2010:ViewStateData>
-      <sap2010:ViewStateData Id="TryCatch_4" sap:VirtualizedContainerService.HintSize="1018,1180">
+      <sap2010:ViewStateData Id="TryCatch_4" sap:VirtualizedContainerService.HintSize="1040,1180">
         <sap:WorkflowViewStateService.ViewState>
           <scg:Dictionary x:TypeArguments="x:String, x:Object">
             <x:Boolean x:Key="IsExpanded">True</x:Boolean>
@@ -843,7 +854,7 @@
           </scg:Dictionary>
         </sap:WorkflowViewStateService.ViewState>
       </sap2010:ViewStateData>
-      <sap2010:ViewStateData Id="TryCatch_5" sap:VirtualizedContainerService.HintSize="1018,956" />
+      <sap2010:ViewStateData Id="TryCatch_5" sap:VirtualizedContainerService.HintSize="1040,956" />
       <sap2010:ViewStateData Id="Sequence_4" sap:VirtualizedContainerService.HintSize="1333,3730">
         <sap:WorkflowViewStateService.ViewState>
           <scg:Dictionary x:TypeArguments="x:String, x:Object">
