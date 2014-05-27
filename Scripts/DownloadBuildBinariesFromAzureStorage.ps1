@@ -1,4 +1,18 @@
 <#
+-------------------------------------------------------------------------
+ Copyright 2013 Microsoft Open Technologies, Inc.
+ Licensed under the Apache License, Version 2.0 (the "License");
+ you may not use this file except in compliance with the License.
+ You may obtain a copy of the License at 
+   http://www.apache.org/licenses/LICENSE-2.0
+ Unless required by applicable law or agreed to in writing, software
+ distributed under the License is distributed on an "AS IS" BASIS,
+ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ See the License for the specific language governing permissions and
+ limitations under the License.
+--------------------------------------------------------------------------
+#>
+<#
 .SYNOPSIS
     Downloads Build binaries from Azure Storage Container to a local folder.
 
@@ -71,8 +85,7 @@ Try
 
     # Check if Azure PowerShell module exists, else install it
     $azureCmdlet = Get-Module -ListAvailable -Name 'Azure'
-    echo '$azureCmdlet.Name '
-    echo $azureCmdlet.Name 
+    
     if ($azureCmdlet.Name -eq "Azure")
     {
         $logFileContent = $logFileContent + "Windows Azure PowerShell module is already available. `n"
@@ -89,7 +102,7 @@ Try
         $logFileContent = '';
 
         # Check if Web PI Command exists, else install it so that Azure PowerShell can be installed through it
-#Get-Command 'WebPICmd'
+        #Get-Command 'WebPICmd'
         #if ($error.Count -gt 0)
         #{
             # Reset the error variable, so that subsequent cmdlet execution will not consider this error

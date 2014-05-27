@@ -56,7 +56,6 @@
       <DependentUpon>PasswordDialog.cs</DependentUpon>
     </Compile>
     <Compile Include="CustomEditors\PasswordEditor.cs" />
-    <Compile Include="ImportCertificates\InstallCertificateForThisUser.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
