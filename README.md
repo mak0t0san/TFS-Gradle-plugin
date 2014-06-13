@@ -67,6 +67,6 @@ TFS can now run Gradle build and automation tasks as part of its workflow and on
 	- If the VMs are behind a load balancer, then Standalone WinRM HTTPS endpoints need to be created for every VM. Each VM will have a different public port. You can create it on the Windows Azure Management portal or from the Windows Azure PowerShell CLI. For details on how to use the Azure PowerShell CLI, see the ‘Client Machine’ section.
 	- Linux VM
 		- SSH server to be running on the Linux VM
-		- The VM should use SSH Key for Authentication. Link for Configuration details
+		- The VM should use SSH Key for Authentication. Link for [Configuration details](http://azure.microsoft.com/en-us/documentation/articles/linux-use-ssh-key/)
 		- In case your VM is already provisioned and uses Username/password authentication, then generate the SSH Keys as mentioned in the link above. Then add the data in myCert.pem to /home/<username>/.ssh/authorized_keys file. 
 		- If the VM is behind a load balancer, then Standalone SSH endpoints need to be created for every VM. Each VM will have a different public port. You can create it on the Windows Azure Management portal or from the Windows Azure PowerShell CLI. For details on how to use the Azure PowerShell CLI, see the ‘Client Machine’ section.
