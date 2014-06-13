@@ -14,6 +14,9 @@ Please refer [TFS Overview](http://www.visualstudio.com/en-us/products/tfs-overv
 TFS can now run Gradle build and automation tasks as part of its workflow and on required, it can deliver the built binaries/application to Windows/Linux Azure VM.
 
 ###Pre-Requisite for Gradle build on TFS
+
+![alt tag](https://cloud.githubusercontent.com/assets/1798439/3269446/7e8e75e4-f2ed-11e3-9cb9-9a1953d88ac3.jpg)
+
 * On-premises TFS Server
   - TFS Build 2013
   - Code should be checked into Git source control
